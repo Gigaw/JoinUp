@@ -1,0 +1,712 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/cities": {
+      "get": {
+        "operationId": "listCities",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/events": {
+      "get": {
+        "operationId": "listEvents",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/v1/events/{eventId}": {
+      "get": {
+        "operationId": "getEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/v1/events/{eventId}/participation": {
+      "put": {
+        "operationId": "joinEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinEventDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/v1/health/live": {
+      "get": {
+        "operationId": "getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/health/ready": {
+      "get": {
+        "operationId": "getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Вместе API",
+    "description": "API первого сквозного сценария MVP",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2000-05-17"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "birthDate"
+        ]
+      },
+      "SessionUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "showAge": {
+            "type": "boolean",
+            "default": false
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "birthDate",
+          "showAge",
+          "onboardingCompleted"
+        ]
+      },
+      "SessionEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "sessionToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/SessionUserDto"
+          }
+        },
+        "required": [
+          "sessionToken",
+          "expiresAt",
+          "user"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "timeZone"
+        ]
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ]
+      },
+      "EventSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryDto"
+          },
+          "city": {
+            "$ref": "#/components/schemas/CityDto"
+          },
+          "meetingPlace": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published",
+              "cancelled"
+            ]
+          },
+          "contentVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "meetingPlace",
+          "startsAt",
+          "participationMode",
+          "participantsCount",
+          "capacity",
+          "isFull",
+          "status",
+          "contentVersion"
+        ]
+      },
+      "EventListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummaryDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ParticipantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "age": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "displayName"
+        ]
+      },
+      "MyParticipationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "going",
+              "rejected",
+              "withdrawn",
+              "cancelled"
+            ]
+          },
+          "seenEventVersion": {
+            "type": "number"
+          },
+          "hasEventUpdates": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "seenEventVersion",
+          "hasEventUpdates"
+        ]
+      },
+      "EventDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryDto"
+          },
+          "city": {
+            "$ref": "#/components/schemas/CityDto"
+          },
+          "meetingPlace": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published",
+              "cancelled"
+            ]
+          },
+          "contentVersion": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/ParticipantDto"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParticipantDto"
+            }
+          },
+          "version": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "myParticipation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyParticipationDto"
+              }
+            ]
+          },
+          "availableActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "meetingPlace",
+          "startsAt",
+          "participationMode",
+          "participantsCount",
+          "capacity",
+          "isFull",
+          "status",
+          "contentVersion",
+          "description",
+          "organizer",
+          "participants",
+          "version",
+          "createdAt",
+          "updatedAt",
+          "availableActions"
+        ]
+      },
+      "JoinEventDto": {
+        "type": "object",
+        "properties": {
+          "participation": {
+            "$ref": "#/components/schemas/MyParticipationDto"
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "participation",
+          "participantsCount",
+          "capacity",
+          "isFull"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "vmeste",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @vmeste/api dev",
+    "dev:mobile": "pnpm --filter @vmeste/mobile start",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @vmeste/api test:e2e",
+    "db:generate": "pnpm --filter @vmeste/api db:generate",
+    "db:migrate": "pnpm --filter @vmeste/api db:migrate",
+    "db:deploy": "pnpm --filter @vmeste/api exec prisma migrate deploy",
+    "db:seed": "pnpm --filter @vmeste/api db:seed",
+    "api:generate": "pnpm --filter @vmeste/api openapi:export && pnpm --filter @vmeste/api-client generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.39.1"
+  }
+}

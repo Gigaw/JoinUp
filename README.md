@@ -7,13 +7,13 @@
 
 ## Текущий статус
 
-Проект находится на этапе завершения архитектурного проектирования первого рабочего каркаса.
-Продуктовые требования, системная архитектура, модель данных, API и границы mobile/backend уже
-описаны. Scaffolding приложений и исполняемый код ещё не созданы.
+Архитектура первого рабочего каркаса зафиксирована, создан `pnpm workspace` и реализован первый
+сквозной сценарий из [Issue #2](https://github.com/Gigaw/JoinUp/issues/2): регистрация, список
+событий, карточка события и присоединение. Backend работает на NestJS/Fastify и PostgreSQL, mobile
+клиент — на Expo Router, а его типы генерируются из OpenAPI.
 
-Поэтому репозиторий пока нельзя запустить локально. Команды установки, разработки и тестирования
-будут добавлены сюда после создания реальной workspace-конфигурации; до этого документ не приводит
-предполагаемые команды, которые невозможно проверить.
+Остальные возможности полного первого каркаса из следующего раздела ещё реализуются по отдельным
+задачам. Текущий vertical slice запускается локально и покрыт unit-, e2e- и concurrency-тестами.
 
 ## Первый рабочий каркас
 
@@ -70,23 +70,22 @@ Backend проектируется как модульный монолит. Б�
 
 ## Документация
 
-| Документ | Назначение |
-| --- | --- |
-| [PRD](docs/product/prd.md) | Цели продукта, scope, пользовательские сценарии и бизнес-правила |
-| [Открытые вопросы](docs/product/open-questions.md) | Решения, которые можно принять позднее |
-| [Системная архитектура](docs/architecture/system-design.md) | Компоненты, границы доверия, надёжность и точки расширения |
-| [Модель данных](docs/architecture/data-model.md) | Таблицы, связи, constraints, privacy и concurrency |
-| [API-контракты](docs/architecture/api-contracts.md) | Endpoints, DTO, errors, authorization и идемпотентность |
-| [Mobile architecture](docs/architecture/mobile-architecture.md) | Навигация, state, forms, API и mobile testing |
-| [Backend architecture](docs/architecture/backend-architecture.md) | NestJS-модули, слои, transactions и backend testing |
-| [ADR](docs/adr/README.md) | Принятые архитектурные решения и их последствия |
+| Документ                                                          | Назначение                                                       |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [PRD](docs/product/prd.md)                                        | Цели продукта, scope, пользовательские сценарии и бизнес-правила |
+| [Открытые вопросы](docs/product/open-questions.md)                | Решения, которые можно принять позднее                           |
+| [Системная архитектура](docs/architecture/system-design.md)       | Компоненты, границы доверия, надёжность и точки расширения       |
+| [Модель данных](docs/architecture/data-model.md)                  | Таблицы, связи, constraints, privacy и concurrency               |
+| [API-контракты](docs/architecture/api-contracts.md)               | Endpoints, DTO, errors, authorization и идемпотентность          |
+| [Mobile architecture](docs/architecture/mobile-architecture.md)   | Навигация, state, forms, API и mobile testing                    |
+| [Backend architecture](docs/architecture/backend-architecture.md) | NestJS-модули, слои, transactions и backend testing              |
+| [ADR](docs/adr/README.md)                                         | Принятые архитектурные решения и их последствия                  |
 
 Главная точка навигации по документации — [`docs/README.md`](docs/README.md).
 
 ## Структура репозитория
 
-Исполняемого application code в репозитории пока нет; основное содержимое — документация. После
-создания каркаса целевая структура будет следующей:
+Исполняемый код и документация находятся в одном workspace:
 
 ```text
 apps/
@@ -104,16 +103,62 @@ docs/
 Точная структура и допустимые зависимости описаны в
 [ADR 0002](docs/adr/0002-monorepo-structure.md).
 
+## Локальный запуск
+
+Нужны Node.js 22+, pnpm 10+ и запущенный Docker Desktop.
+
+```bash
+pnpm install
+cp apps/api/.env.example apps/api/.env
+cp apps/mobile/.env.example apps/mobile/.env
+docker compose -p vmeste up -d postgres
+pnpm db:generate
+pnpm db:deploy
+pnpm db:seed
+```
+
+API и Swagger UI запускаются командами:
+
+```bash
+pnpm dev:api
+# API: http://localhost:3000/v1
+# Swagger UI: http://localhost:3000/openapi
+```
+
+В другом терминале запускается Expo:
+
+```bash
+pnpm dev:mobile
+```
+
+Для Android Emulator в `apps/mobile/.env` нужно указать
+`EXPO_PUBLIC_API_URL=http://10.0.2.2:3000`. Seed создаёт будущую активность в Казани; после
+регистрации она появляется в списке и доступна для присоединения.
+
+Основные проверки:
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:e2e
+pnpm build
+```
+
+`test:e2e` требует запущенный PostgreSQL, применённую миграцию и seed. CI выполняет эту же
+последовательность на чистой базе и дополнительно проверяет, что OpenAPI-клиент сгенерирован без
+незакоммиченного diff.
+
 ## Поддержка платформ
 
-| Платформа | Статус |
-| --- | --- |
-| iOS | Запланирована через выбранную версию Expo; сборка и устройства ещё не проверены |
-| Android | Запланирована через выбранную версию Expo; сборка и устройства ещё не проверены |
-| Web | Не входит в пользовательский MVP |
+| Платформа | Статус                                                             |
+| --------- | ------------------------------------------------------------------ |
+| iOS       | Настроена через Expo SDK 54; сборка на устройстве ещё не проверена |
+| Android   | Настроена через Expo SDK 54; сборка на устройстве ещё не проверена |
+| Web       | Не входит в пользовательский MVP                                   |
 
-Точные минимальные версии iOS и Android будут зафиксированы после выбора версии Expo при создании
-каркаса.
+Точные минимальные версии iOS и Android будут зафиксированы после первой device-сборки.
 
 ## Работа с задачами
 
@@ -122,6 +167,7 @@ docs/
 - [#9 — system design, data model и API](https://github.com/Gigaw/JoinUp/issues/9)
 - [#10 — mobile и backend architecture](https://github.com/Gigaw/JoinUp/issues/10)
 - [#11 — ADR и первые решения](https://github.com/Gigaw/JoinUp/issues/11)
+- [#2 — каркас MVP и первый сквозной сценарий](https://github.com/Gigaw/JoinUp/issues/2)
 
 GitHub Issues определяют delivery scope и критерии готовности. Если Issue, PRD и архитектурный
 документ расходятся, конфликт нужно разрешить в источниках истины до реализации.

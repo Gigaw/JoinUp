@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Вместе",
+    "slug": "vmeste",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "vmeste",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.vmeste.mobile"
+    },
+    "android": {
+      "package": "app.vmeste.mobile"
+    }
+  }
+}

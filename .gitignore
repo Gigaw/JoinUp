@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.expo/
+.env
+.env.*
+!.env.example
+apps/api/src/generated/
+apps/mobile/expo-env.d.ts
+media/
+*.log
+.DS_Store
