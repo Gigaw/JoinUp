@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import {
   Button,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -36,7 +37,7 @@ export default function RegisterScreen() {
   const submit = handleSubmit(async (values) => {
     try {
       await register(values);
-      router.replace('/events');
+      router.replace('/');
     } catch (error) {
       const message =
         error instanceof AppError
@@ -82,6 +83,11 @@ export default function RegisterScreen() {
         onPress={() => void submit()}
         disabled={isSubmitting}
       />
+      <Link href="/sign-in" asChild>
+        <Pressable>
+          <Text style={styles.link}>Уже есть аккаунт? Войти</Text>
+        </Pressable>
+      </Link>
     </KeyboardAvoidingView>
   );
 }
@@ -134,4 +140,5 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   error: { color: '#b42318' },
+  link: { color: '#2457d6', textAlign: 'center', padding: 8 },
 });

@@ -16,6 +16,7 @@ export class SessionEnvelopeDto {
 
 export class CityDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() slug!: string;
   @ApiProperty() name!: string;
   @ApiProperty() timeZone!: string;
 }
@@ -24,6 +25,23 @@ export class CategoryDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() slug!: string;
   @ApiProperty() name!: string;
+}
+
+export class MeDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'email' }) email!: string;
+  @ApiProperty({ format: 'date' }) birthDate!: string;
+  @ApiPropertyOptional({ nullable: true, type: String })
+  displayName!: string | null;
+  @ApiProperty({ default: false }) showAge!: boolean;
+  @ApiPropertyOptional({ nullable: true, type: String }) avatarUrl!:
+    string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) bio!: string | null;
+  @ApiPropertyOptional({ nullable: true, type: CityDto }) city!: CityDto | null;
+  @ApiProperty({ type: [CategoryDto] }) interests!: CategoryDto[];
+  @ApiProperty() onboardingCompleted!: boolean;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ format: 'date-time' }) updatedAt!: string;
 }
 
 export class ParticipantDto {

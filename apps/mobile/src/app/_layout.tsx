@@ -8,20 +8,11 @@ export default function RootLayout() {
     <SessionProvider>
       <QueryProvider>
         <StatusBar style="auto" />
-        <Stack screenOptions={{ headerBackTitle: 'Назад' }}>
+        <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="(auth)/register"
-            options={{ title: 'Регистрация' }}
-          />
-          <Stack.Screen
-            name="(app)/events/index"
-            options={{ title: 'Активности' }}
-          />
-          <Stack.Screen
-            name="(app)/events/[eventId]"
-            options={{ title: 'Активность' }}
-          />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          <Stack.Screen name="(app)" options={{ headerShown: false }} />
         </Stack>
       </QueryProvider>
     </SessionProvider>

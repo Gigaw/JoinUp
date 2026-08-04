@@ -192,6 +192,7 @@ export class EventsService {
       },
       city: {
         id: event.city.id,
+        slug: event.city.slug,
         name: event.city.name,
         timeZone: event.city.timeZone,
       },

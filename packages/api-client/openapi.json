@@ -85,6 +85,68 @@
         ]
       }
     },
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "profile"
+        ]
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
     "/v1/cities": {
       "get": {
         "operationId": "listCities",
@@ -104,14 +166,34 @@
             }
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "",
         "tags": [
           "cities"
+        ]
+      }
+    },
+    "/v1/categories": {
+      "get": {
+        "operationId": "listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "categories"
         ]
       }
     },
@@ -386,6 +468,9 @@
             "type": "string",
             "format": "uuid"
           },
+          "slug": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -395,6 +480,7 @@
         },
         "required": [
           "id",
+          "slug",
           "name",
           "timeZone"
         ]
@@ -418,6 +504,105 @@
           "slug",
           "name"
         ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "showAge": {
+            "type": "boolean",
+            "default": false
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CityDto"
+              }
+            ]
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryDto"
+            }
+          },
+          "onboardingCompleted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "birthDate",
+          "showAge",
+          "interests",
+          "onboardingCompleted",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PatchMeDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "showAge": {
+            "type": "boolean"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
       },
       "EventSummaryDto": {
         "type": "object",

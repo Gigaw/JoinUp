@@ -23,7 +23,7 @@ export class AuthService {
     try {
       const user = await this.prisma.$transaction(async (transaction) => {
         const created = await transaction.user.create({
-          data: { email, passwordHash, birthDate },
+          data: { email, emailNormalized: email, passwordHash, birthDate },
         });
         await transaction.authSession.create({
           data: {
@@ -52,7 +52,9 @@ export class AuthService {
 
   async login(input: LoginDto): Promise<SessionEnvelopeDto> {
     const email = input.email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({
+      where: { emailNormalized: email },
+    });
     if (!user || !(await verify(user.passwordHash, input.password))) {
       throw new DomainError(
         401,
@@ -89,7 +91,7 @@ export class AuthService {
       email: string;
       birthDate: Date;
       showAge: boolean;
-      onboardingCompleted: boolean;
+      onboardingCompletedAt: Date | null;
     },
   ): SessionEnvelopeDto {
     return {
@@ -100,7 +102,7 @@ export class AuthService {
         email: user.email,
         birthDate: user.birthDate.toISOString().slice(0, 10),
         showAge: user.showAge,
-        onboardingCompleted: user.onboardingCompleted,
+        onboardingCompleted: user.onboardingCompletedAt !== null,
       },
     };
   }

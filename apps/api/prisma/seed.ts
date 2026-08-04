@@ -35,15 +35,16 @@ async function main(): Promise<void> {
   });
   const organizer = await prisma.user.upsert({
     where: { id: ids.organizer },
-    update: { cityId: city.id },
+    update: { cityId: city.id, onboardingCompletedAt: new Date() },
     create: {
       id: ids.organizer,
       email: 'organizer@example.com',
+      emailNormalized: 'organizer@example.com',
       passwordHash: await hash('organizer-password', { type: 2 }),
       birthDate: new Date('1995-04-12T00:00:00.000Z'),
       displayName: 'Мария',
       cityId: city.id,
-      onboardingCompleted: true,
+      onboardingCompletedAt: new Date(),
     },
   });
   const startsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

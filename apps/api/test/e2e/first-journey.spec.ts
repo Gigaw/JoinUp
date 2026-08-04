@@ -27,7 +27,7 @@ describe('first user journey', () => {
     await app.close();
   });
 
-  it('registers, reads seeded events and joins idempotently', async () => {
+  it('registers, completes onboarding, logs in and joins idempotently', async () => {
     const registration = await request(app.getHttpServer())
       .post('/v1/auth/register')
       .send({
@@ -41,13 +41,76 @@ describe('first user journey', () => {
       showAge: false,
       onboardingCompleted: false,
     });
-    const token = registration.body.sessionToken as string;
+    const registrationToken = registration.body.sessionToken as string;
+    const userId = registration.body.user.id as string;
+
+    await request(app.getHttpServer()).get('/v1/me').expect(401);
+    const meBeforeOnboarding = await request(app.getHttpServer())
+      .get('/v1/me')
+      .set('Authorization', `Bearer ${registrationToken}`)
+      .expect(200);
+    expect(meBeforeOnboarding.body).toMatchObject({
+      email,
+      birthDate: '1997-06-15',
+      displayName: null,
+      showAge: false,
+      onboardingCompleted: false,
+    });
 
     const cities = await request(app.getHttpServer())
       .get('/v1/cities')
-      .set('Authorization', `Bearer ${token}`)
       .expect(200);
     const cityId = cities.body[0].id as string;
+    expect(cities.body[0]).toHaveProperty('slug');
+
+    const categories = await request(app.getHttpServer())
+      .get('/v1/categories')
+      .expect(200);
+    const categoryId = categories.body[0].id as string;
+
+    const partialProfile = await request(app.getHttpServer())
+      .patch('/v1/me')
+      .set('Authorization', `Bearer ${registrationToken}`)
+      .send({ displayName: '  Алексей  ' })
+      .expect(200);
+    expect(partialProfile.body).toMatchObject({
+      displayName: 'Алексей',
+      onboardingCompleted: false,
+    });
+
+    const completedProfile = await request(app.getHttpServer())
+      .patch('/v1/me')
+      .set('Authorization', `Bearer ${registrationToken}`)
+      .send({
+        cityId,
+        categoryIds: [categoryId],
+        showAge: true,
+      })
+      .expect(200);
+    expect(completedProfile.body).toMatchObject({
+      id: userId,
+      displayName: 'Алексей',
+      showAge: true,
+      city: { id: cityId },
+      interests: [{ id: categoryId }],
+      onboardingCompleted: true,
+    });
+
+    const invalidLogin = await request(app.getHttpServer())
+      .post('/v1/auth/login')
+      .send({ email, password: 'wrong-password' })
+      .expect(401);
+    expect(invalidLogin.body.code).toBe('INVALID_CREDENTIALS');
+
+    const login = await request(app.getHttpServer())
+      .post('/v1/auth/login')
+      .send({ email: email.toUpperCase(), password: 'safe-test-password' })
+      .expect(200);
+    expect(login.body.user).toMatchObject({
+      id: userId,
+      onboardingCompleted: true,
+    });
+    const token = login.body.sessionToken as string;
 
     const list = await request(app.getHttpServer())
       .get('/v1/events')
@@ -87,6 +150,25 @@ describe('first user journey', () => {
       capacity: 8,
     });
     expect(repeatedJoin.body).toEqual(firstJoin.body);
+
+    const detailsAfterJoin = await request(app.getHttpServer())
+      .get(`/v1/events/${eventId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const participantDetails = detailsAfterJoin.body as unknown as {
+      participants: Array<{ id?: string; displayName?: string; age?: number }>;
+    };
+    const publicParticipant = participantDetails.participants.find(
+      (participant: { id?: string }) => participant.id === userId,
+    );
+    expect(publicParticipant).toMatchObject({
+      id: userId,
+      displayName: 'Алексей',
+    });
+    expect(publicParticipant).toHaveProperty('age');
+    expect(publicParticipant).not.toHaveProperty('birthDate');
+    expect(publicParticipant).not.toHaveProperty('email');
+    expect(publicParticipant).not.toHaveProperty('showAge');
     expect(
       await prisma.eventParticipation.count({
         where: { eventId, user: { email } },

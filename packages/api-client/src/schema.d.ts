@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateMe"];
+        trace?: never;
+    };
     "/v1/cities": {
         parameters: {
             query?: never;
@@ -60,6 +76,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listCities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -188,6 +220,7 @@ export interface components {
         CityDto: {
             /** Format: uuid */
             id: string;
+            slug: string;
             name: string;
             timeZone: string;
         };
@@ -196,6 +229,34 @@ export interface components {
             id: string;
             slug: string;
             name: string;
+        };
+        MeDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            /** Format: date */
+            birthDate: string;
+            displayName?: string | null;
+            /** @default false */
+            showAge: boolean;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            city?: components["schemas"]["CityDto"] | null;
+            interests: components["schemas"]["CategoryDto"][];
+            onboardingCompleted: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PatchMeDto: {
+            displayName?: string;
+            showAge?: boolean;
+            bio?: string | null;
+            /** Format: uuid */
+            cityId?: string;
+            categoryIds?: string[];
         };
         EventSummaryDto: {
             /** Format: uuid */
@@ -346,6 +407,48 @@ export interface operations {
             };
         };
     };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
+            };
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchMeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
+            };
+        };
+    };
     listCities: {
         parameters: {
             query?: never;
@@ -361,6 +464,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CityDto"][];
+                };
+            };
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryDto"][];
                 };
             };
         };

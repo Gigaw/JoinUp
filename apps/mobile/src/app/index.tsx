@@ -1,19 +1,15 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useSession } from '../shared/session/session-context';
+import {
+  NavigationError,
+  NavigationLoading,
+} from '../shared/navigation/navigation-state';
+import { useRootDestination } from '../shared/navigation/use-root-destination';
 
 export default function IndexScreen() {
-  const { token, restoring } = useSession();
-  if (restoring) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-  return <Redirect href={token ? '/events' : '/register'} />;
+  const { destination, retry } = useRootDestination();
+  if (destination === 'loading') return <NavigationLoading />;
+  if (destination === 'error') return <NavigationError retry={retry} />;
+  if (destination === 'sign-in') return <Redirect href="/sign-in" />;
+  if (destination === 'onboarding') return <Redirect href="/onboarding" />;
+  return <Redirect href="/events" />;
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-});

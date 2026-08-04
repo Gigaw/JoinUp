@@ -7,10 +7,11 @@
 
 ## Текущий статус
 
-Архитектура первого рабочего каркаса зафиксирована, создан `pnpm workspace` и реализован первый
-сквозной сценарий из [Issue #2](https://github.com/Gigaw/JoinUp/issues/2): регистрация, список
-событий, карточка события и присоединение. Backend работает на NestJS/Fastify и PostgreSQL, mobile
-клиент — на Expo Router, а его типы генерируются из OpenAPI.
+Архитектура первого рабочего каркаса зафиксирована, создан `pnpm workspace`, реализованы первый
+сквозной сценарий из [Issue #2](https://github.com/Gigaw/JoinUp/issues/2) и авторизация с онбордингом
+из [Issue #14](https://github.com/Gigaw/JoinUp/issues/14): регистрация, вход, заполнение профиля,
+список событий, карточка события и присоединение. Backend работает на NestJS/Fastify и PostgreSQL,
+mobile клиент — на Expo Router, а его типы генерируются из OpenAPI.
 
 Остальные возможности полного первого каркаса из следующего раздела ещё реализуются по отдельным
 задачам. Текущий vertical slice запускается локально и покрыт unit-, e2e- и concurrency-тестами.
@@ -133,7 +134,8 @@ pnpm dev:mobile
 
 Для Android Emulator в `apps/mobile/.env` нужно указать
 `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000`. Seed создаёт будущую активность в Казани; после
-регистрации она появляется в списке и доступна для присоединения.
+регистрации и заполнения обязательных полей профиля она появляется в списке и доступна для
+присоединения.
 
 Основные проверки:
 
@@ -168,6 +170,7 @@ pnpm build
 - [#10 — mobile и backend architecture](https://github.com/Gigaw/JoinUp/issues/10)
 - [#11 — ADR и первые решения](https://github.com/Gigaw/JoinUp/issues/11)
 - [#2 — каркас MVP и первый сквозной сценарий](https://github.com/Gigaw/JoinUp/issues/2)
+- [#14 — вход и онбординг профиля](https://github.com/Gigaw/JoinUp/issues/14)
 
 GitHub Issues определяют delivery scope и критерии готовности. Если Issue, PRD и архитектурный
 документ расходятся, конфликт нужно разрешить в источниках истины до реализации.

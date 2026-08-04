@@ -35,24 +35,25 @@ enum ParticipationStatus {
 }
 
 model User {
-  id                  String               @id @default(uuid()) @db.Uuid
-  email               String               @unique @db.VarChar(254)
-  passwordHash        String               @map("password_hash")
-  birthDate           DateTime             @map("birth_date") @db.Date
-  displayName         String?              @map("display_name") @db.VarChar(80)
-  showAge             Boolean              @default(false) @map("show_age")
-  avatarObjectKey     String?              @map("avatar_object_key")
-  bio                 String?              @db.VarChar(500)
-  cityId              String?              @map("city_id") @db.Uuid
-  onboardingCompleted Boolean              @default(false) @map("onboarding_completed")
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz
-  city                City?                @relation(fields: [cityId], references: [id])
-  sessions            AuthSession[]
-  organizedEvents     Event[]              @relation("EventOrganizer")
-  participations      EventParticipation[]
-  interests           UserInterest[]
-  idempotencyRecords  IdempotencyRecord[]
+  id                    String               @id @default(uuid()) @db.Uuid
+  email                 String               @db.VarChar(254)
+  emailNormalized       String               @unique @map("email_normalized") @db.VarChar(254)
+  passwordHash          String               @map("password_hash")
+  birthDate             DateTime             @map("birth_date") @db.Date
+  displayName           String?              @map("display_name") @db.VarChar(80)
+  showAge               Boolean              @default(false) @map("show_age")
+  avatarObjectKey       String?              @map("avatar_object_key")
+  bio                   String?              @db.VarChar(500)
+  cityId                String?              @map("city_id") @db.Uuid
+  onboardingCompletedAt DateTime?            @map("onboarding_completed_at") @db.Timestamptz
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  city                  City?                @relation(fields: [cityId], references: [id])
+  sessions              AuthSession[]
+  organizedEvents       Event[]              @relation("EventOrganizer")
+  participations        EventParticipation[]
+  interests             UserInterest[]
+  idempotencyRecords    IdempotencyRecord[]
 
   @@map("users")
 }
@@ -71,12 +72,12 @@ model AuthSession {
 }
 
 model City {
-  id          String   @id @default(uuid()) @db.Uuid
-  slug        String   @unique @db.VarChar(80)
-  name        String   @db.VarChar(120)
-  timeZone    String   @map("time_zone") @db.VarChar(80)
-  isSupported Boolean  @default(true) @map("is_supported")
-  sortOrder   Int      @default(0) @map("sort_order")
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique @db.VarChar(80)
+  name        String  @db.VarChar(120)
+  timeZone    String  @map("time_zone") @db.VarChar(80)
+  isSupported Boolean @default(true) @map("is_supported")
+  sortOrder   Int     @default(0) @map("sort_order")
   users       User[]
   events      Event[]
 

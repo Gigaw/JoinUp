@@ -1,29 +1,17 @@
-import { Controller, Get, Inject, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Controller, Get, Inject } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CityDto } from '../../platform/http/api.dto';
-import { SessionGuard } from '../auth/transport/http/session.guard';
-import { PrismaService } from '../../platform/database/prisma.service';
+import { CitiesService } from './application/cities.service';
 
 @ApiTags('cities')
-@ApiBearerAuth()
-@UseGuards(SessionGuard)
 @Controller('cities')
 export class CitiesController {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(@Inject(CitiesService) private readonly cities: CitiesService) {}
 
   @Get()
   @ApiOperation({ operationId: 'listCities' })
   @ApiOkResponse({ type: [CityDto] })
-  async list(): Promise<CityDto[]> {
-    return this.prisma.city.findMany({
-      where: { isSupported: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, timeZone: true },
-    });
+  list(): Promise<CityDto[]> {
+    return this.cities.list();
   }
 }
