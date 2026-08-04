@@ -82,7 +82,10 @@ export default function OnboardingScreen() {
   const catalogError = cities.error ?? categories.error;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      testID="onboarding-screen"
+    >
       <View style={styles.header}>
         <View style={styles.heading}>
           <Text style={styles.title}>Расскажите немного о себе</Text>
@@ -108,6 +111,7 @@ export default function OnboardingScreen() {
               onChangeText={onChange}
               placeholder="Например, Ева"
               style={styles.input}
+              testID="onboarding-display-name-input"
               value={value}
             />
           )}
@@ -143,6 +147,7 @@ export default function OnboardingScreen() {
                       label={city.name}
                       selected={value === city.id}
                       onPress={() => onChange(city.id)}
+                      testID={`onboarding-city-${city.slug}`}
                     />
                   ))}
                 </View>
@@ -171,6 +176,7 @@ export default function OnboardingScreen() {
                             : [...value, category.id],
                         )
                       }
+                      testID={`onboarding-category-${category.slug}`}
                     />
                   ))}
                 </View>
@@ -193,7 +199,11 @@ export default function OnboardingScreen() {
                 рассчитанный возраст.
               </Text>
             </View>
-            <Switch onValueChange={onChange} value={value} />
+            <Switch
+              onValueChange={onChange}
+              testID="onboarding-show-age-switch"
+              value={value}
+            />
           </View>
         )}
       />
@@ -203,6 +213,7 @@ export default function OnboardingScreen() {
         title={isSubmitting ? 'Сохраняем…' : 'Продолжить'}
         disabled={isSubmitting || catalogsLoading || Boolean(catalogError)}
         onPress={() => void submit()}
+        testID="onboarding-submit"
       />
     </ScrollView>
   );
@@ -212,10 +223,12 @@ function ChoiceChip({
   label,
   selected,
   onPress,
+  testID,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  testID: string;
 }) {
   return (
     <Pressable
@@ -223,6 +236,7 @@ function ChoiceChip({
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={[styles.chip, selected && styles.chipSelected]}
+      testID={testID}
     >
       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
         {label}

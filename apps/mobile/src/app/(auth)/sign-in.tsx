@@ -48,6 +48,7 @@ export default function SignInScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
+      testID="sign-in-screen"
     >
       <Text style={styles.title}>С возвращением</Text>
       <Text style={styles.subtitle}>Войдите, чтобы продолжить.</Text>
@@ -64,6 +65,7 @@ export default function SignInScreen() {
               onBlur={onBlur}
               onChangeText={onChange}
               style={styles.input}
+              testID="sign-in-email-input"
               value={value}
             />
           )}
@@ -85,6 +87,7 @@ export default function SignInScreen() {
               onChangeText={onChange}
               secureTextEntry
               style={styles.input}
+              testID="sign-in-password-input"
               value={value}
             />
           )}
@@ -100,9 +103,10 @@ export default function SignInScreen() {
         title={isSubmitting ? 'Входим…' : 'Войти'}
         disabled={isSubmitting}
         onPress={() => void submit()}
+        testID="sign-in-submit"
       />
       <Link href="/register" asChild>
-        <Pressable>
+        <Pressable testID="sign-in-register-link">
           <Text style={styles.link}>Нет аккаунта? Зарегистрироваться</Text>
         </Pressable>
       </Link>

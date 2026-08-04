@@ -51,6 +51,7 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
+      testID="register-screen"
     >
       <Text style={styles.title}>Найдите компанию рядом</Text>
       <Text style={styles.subtitle}>
@@ -82,9 +83,10 @@ export default function RegisterScreen() {
         title={isSubmitting ? 'Создаём…' : 'Зарегистрироваться'}
         onPress={() => void submit()}
         disabled={isSubmitting}
+        testID="register-submit"
       />
       <Link href="/sign-in" asChild>
-        <Pressable>
+        <Pressable testID="register-sign-in-link">
           <Text style={styles.link}>Уже есть аккаунт? Войти</Text>
         </Pressable>
       </Link>
@@ -119,6 +121,7 @@ function Field({
             onChangeText={onChange}
             secureTextEntry={secureTextEntry}
             style={styles.input}
+            testID={`register-${name}-input`}
             value={value}
           />
         )}

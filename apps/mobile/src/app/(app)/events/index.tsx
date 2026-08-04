@@ -36,7 +36,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="events-screen">
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Рядом с вами</Text>
@@ -44,7 +44,7 @@ export default function EventsScreen() {
             Выберите активность и присоединяйтесь
           </Text>
         </View>
-        <Pressable onPress={() => void logout()}>
+        <Pressable onPress={() => void logout()} testID="events-logout">
           <Text style={styles.logout}>Выйти</Text>
         </Pressable>
       </View>
@@ -72,7 +72,7 @@ export default function EventsScreen() {
             }}
             asChild
           >
-            <Pressable style={styles.card}>
+            <Pressable style={styles.card} testID={`event-card-${item.id}`}>
               <Text style={styles.category}>{item.category.name}</Text>
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text>{formatDate(item.startsAt)}</Text>

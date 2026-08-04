@@ -58,7 +58,10 @@ export default function EventDetailsScreen() {
     event.availableActions.includes('apply');
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      testID="event-details-screen"
+    >
       <Text style={styles.category}>{event.category.name}</Text>
       <Text style={styles.title}>{event.title}</Text>
       <Text style={styles.meta}>{formatDate(event.startsAt)}</Text>
@@ -93,6 +96,7 @@ export default function EventDetailsScreen() {
           }
           disabled={join.isPending}
           onPress={() => join.mutate()}
+          testID="event-participation-submit"
         />
       ) : null}
     </ScrollView>

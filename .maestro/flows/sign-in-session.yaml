@@ -1,0 +1,37 @@
+appId: app.vmeste.mobile
+name: Sign in and restore session
+tags:
+  - smoke
+  - auth
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: '.*8081'
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- assertVisible:
+    id: sign-in-screen
+- tapOn:
+    id: sign-in-email-input
+- inputText: organizer@example.com
+- tapOn:
+    id: sign-in-password-input
+- inputText: organizer-password
+- hideKeyboard
+- tapOn:
+    id: sign-in-submit
+- assertVisible:
+    id: events-screen
+- stopApp
+- launchApp
+- assertVisible:
+    id: events-screen
+- tapOn:
+    id: events-logout
+- assertVisible:
+    id: sign-in-screen

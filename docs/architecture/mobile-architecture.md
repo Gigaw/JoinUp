@@ -383,8 +383,33 @@ Mobile type-check компилируется только с generated `packages
 
 Перед закрытым пилотом основные сценарии выполняются на физических iOS и Android устройствах,
 включая slow/offline network, background/foreground, app restart, image picker interruption и
-системное масштабирование текста. Выбор отдельного device E2E framework выполняется после появления
-стабильного skeleton и не блокирует component/integration tests.
+системное масштабирование текста.
+
+Для повторяемых UI smoke-тестов выбран Maestro согласно
+[ADR 0008](../adr/0008-maestro-mobile-e2e.md). Flow находятся в корневом `.maestro/` и управляют
+приложением только через видимый текст, accessibility tree и стабильные `testID`. Они не обращаются
+к Prisma и внутренним backend-модулям, создают только синтетические тестовые данные и запускаются
+после подготовки PostgreSQL, seed, API и Expo.
+
+Локальный контур использует development build с `expo-dev-client` и единым bundle/package id
+`app.vmeste.mobile`. Maestro запускает его напрямую, очищает только данные тестируемого приложения
+и выбирает запущенный Metro development server на порту `8081`, не затрагивая Expo Go.
+`expo run:ios` и `expo run:android` выполняют локальный prebuild и native build;
+после первой установки изменения TypeScript/React-кода загружаются через Metro без повторной native
+сборки.
+
+Android-команда перед flow создаёт `adb reverse tcp:3000 tcp:3000`, поэтому тот же
+`EXPO_PUBLIC_API_URL=http://localhost:3000` работает в iOS Simulator и Android Emulator.
+
+Native-каталоги `apps/mobile/ios` и `apps/mobile/android` генерируются Expo Prebuild локально и не
+коммитятся. Источниками конфигурации остаются `app.json`, Expo config plugins и package
+dependencies. Native-каталог можно регенерировать, поэтому ручные изменения generated native files
+не считаются источником истины.
+
+Maestro дополняет, но не заменяет component/integration tests и ручную проверку на физических
+устройствах. В CI device-flow добавляется после настройки воспроизводимой EAS simulator/emulator
+build в рамках [Issue #16](https://github.com/Gigaw/JoinUp/issues/16); до этого он остаётся явной
+локальной проверкой и не включается в корневой `pnpm test`.
 
 ## 17. Запрещённые сокращения
 
@@ -414,4 +439,6 @@ Mobile type-check компилируется только с generated `packages
 - [Expo ImagePicker](https://docs.expo.dev/versions/latest/sdk/imagepicker/)
 - [Expo ImageManipulator](https://docs.expo.dev/versions/latest/sdk/imagemanipulator/)
 - [Expo Image](https://docs.expo.dev/versions/latest/sdk/image/)
+- [Maestro для React Native](https://docs.maestro.dev/platform-support/react-native)
+- [ADR 0008: Maestro для mobile E2E](../adr/0008-maestro-mobile-e2e.md)
 - [TanStack Query: React Native example](https://tanstack.com/query/v5/docs/framework/react/examples/react-native)

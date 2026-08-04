@@ -8,14 +8,15 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude test/e2e/**",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e": "node --env-file=.env node_modules/vitest/vitest.mjs run --config vitest.e2e.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node --import tsx prisma/seed.ts",
+    "db:seed": "node --env-file=.env --import tsx prisma/seed.ts",
     "openapi:export": "nest build && node dist/platform/openapi/export-openapi.js"
   },
   "dependencies": {
     "@fastify/cors": "11.2.0",
+    "@fastify/static": "9.3.0",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-fastify": "^11.1.6",

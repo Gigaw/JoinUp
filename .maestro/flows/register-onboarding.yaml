@@ -1,0 +1,56 @@
+appId: app.vmeste.mobile
+name: Registration and onboarding
+tags:
+  - smoke
+  - auth
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: '.*8081'
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- assertVisible:
+    id: sign-in-screen
+- tapOn:
+    id: sign-in-register-link
+- assertVisible:
+    id: register-screen
+- evalScript: ${output.email = "maestro-" + Date.now() + "@example.com"}
+- tapOn:
+    id: register-email-input
+- inputText: ${output.email}
+- tapOn:
+    id: register-password-input
+- inputText: maestro-password
+- hideKeyboard
+- tapOn:
+    id: register-birthDate-input
+- inputText: 1990-01-01
+- hideKeyboard
+- tapOn:
+    id: register-submit
+- assertVisible:
+    id: onboarding-screen
+- tapOn:
+    id: onboarding-display-name-input
+- inputText: Maestro
+- hideKeyboard
+- tapOn:
+    id: onboarding-city-kazan
+- tapOn:
+    id: onboarding-category-sport
+- tapOn:
+    id: onboarding-submit
+- assertVisible:
+    id: events-screen
+- assertVisible: Волейбол вечером
+- tapOn:
+    id: event-card-5b61f5a6-bc32-4f7f-bb51-24cebd154a39
+- assertVisible:
+    id: event-details-screen
+- assertVisible: Площадка у центрального парка

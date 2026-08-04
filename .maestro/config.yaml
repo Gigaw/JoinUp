@@ -1,0 +1,8 @@
+flows:
+  - 'flows/*'
+testOutputDir: artifacts/maestro
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - sign-in-session
+    - register-onboarding

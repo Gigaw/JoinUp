@@ -126,16 +126,53 @@ pnpm dev:api
 # Swagger UI: http://localhost:3000/openapi
 ```
 
-В другом терминале запускается Expo:
+Для первого локального запуска соберите и установите development build в выбранный
+Simulator/Emulator. `expo run:*` автоматически выполнит prebuild, если native-каталог отсутствует:
+
+```bash
+pnpm mobile:ios
+pnpm mobile:android
+```
+
+Для iOS нужен Xcode 16.1 или новее и рабочий CocoaPods. Это минимальное требование текущей связки
+Expo SDK 54 и React Native 0.81.
+
+Для Android Emulator можно указать в `apps/mobile/.env`
+`EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` либо выполнить `adb reverse tcp:3000 tcp:3000` и оставить
+`http://localhost:3000`. Seed создаёт будущую активность в Казани; после регистрации и заполнения
+обязательных полей профиля она появляется в списке и доступна для присоединения.
+
+После первой native-сборки изменения TypeScript/React-кода не требуют повторного build. Запустите
+Metro для development client:
 
 ```bash
 pnpm dev:mobile
 ```
 
-Для Android Emulator в `apps/mobile/.env` нужно указать
-`EXPO_PUBLIC_API_URL=http://10.0.2.2:3000`. Seed создаёт будущую активность в Казани; после
-регистрации и заполнения обязательных полей профиля она появляется в списке и доступна для
-присоединения.
+Явный `pnpm mobile:prebuild` нужен только для проверки или регенерации native-проектов. Каталоги
+`apps/mobile/ios` и `apps/mobile/android` являются локальным output Expo Prebuild и не коммитятся.
+
+### Проверка mobile через Maestro
+
+Для локальных UI smoke-тестов нужен Maestro CLI и установленный development build
+`app.vmeste.mobile` в iOS Simulator или Android Emulator. На macOS CLI устанавливается командой:
+
+```bash
+brew install mobile-dev-inc/tap/maestro
+```
+
+После запуска PostgreSQL, seed, API и Metro выполните команду для выбранной платформы:
+
+```bash
+pnpm test:e2e:mobile:ios
+pnpm test:e2e:mobile:android
+```
+
+Android-команда сама выполняет `adb reverse tcp:3000 tcp:3000`, поэтому для неё можно оставить
+`EXPO_PUBLIC_API_URL=http://localhost:3000`. Перед iOS-проверкой также используйте
+`http://localhost:3000`. Flow запускает development build напрямую, очищает только его локальное
+состояние, выбирает запущенный Metro на порту `8081`, создаёт тестовые аккаунты и проверяет
+регистрацию, онбординг, вход, восстановление сессии и открытие seed-события.
 
 Основные проверки:
 
@@ -145,6 +182,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:e2e
+pnpm test:e2e:mobile:ios # требует запущенные API, Expo и iOS Simulator
 pnpm build
 ```
 
@@ -154,11 +192,11 @@ pnpm build
 
 ## Поддержка платформ
 
-| Платформа | Статус                                                             |
-| --------- | ------------------------------------------------------------------ |
-| iOS       | Настроена через Expo SDK 54; сборка на устройстве ещё не проверена |
-| Android   | Настроена через Expo SDK 54; сборка на устройстве ещё не проверена |
-| Web       | Не входит в пользовательский MVP                                   |
+| Платформа | Статус                                                            |
+| --------- | ----------------------------------------------------------------- |
+| iOS       | Настроена через Expo SDK 54; локальная сборка требует Xcode 16.1+ |
+| Android   | Development build проверен в Android Emulator API 34              |
+| Web       | Не входит в пользовательский MVP                                  |
 
 Точные минимальные версии iOS и Android будут зафиксированы после первой device-сборки.
 
