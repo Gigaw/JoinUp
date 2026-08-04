@@ -11,8 +11,8 @@
 | [Системная архитектура](system-design.md) | Границы системы, потоки, безопасность, надёжность и точки расширения | Draft |
 | [Модель данных](data-model.md) | Таблицы, связи, приватность, constraints и конкурентная запись | Draft |
 | [API-контракты](api-contracts.md) | REST endpoints, DTO, ошибки, authorization и идемпотентность | Draft |
-| `mobile-architecture.md` | Архитектура React Native / Expo | Запланирован в #10 |
-| `backend-architecture.md` | Модули и слои NestJS backend | Запланирован в #10 |
+| [Mobile architecture](mobile-architecture.md) | Навигация, state, API, формы и тестирование Expo-приложения | Draft |
+| [Backend architecture](backend-architecture.md) | NestJS-модули, слои, транзакции, authorization и тестирование | Draft |
 
 ## Правила изменений
 
@@ -22,4 +22,3 @@
 - Изменение модели участия проверяется относительно всех продуктовых инвариантов и concurrency
   scenarios.
 - Планируемая точка расширения не означает, что отложенный модуль входит в текущий каркас.
-

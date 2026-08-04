@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | [Product Requirements Document](product/prd.md) | Цели продукта, пользователи, scope MVP и требования | Draft, версия 0.1 |
 | [Открытые продуктовые вопросы](product/open-questions.md) | Нерешённые вопросы и уже зафиксированные решения | Draft |
-| [Architecture](architecture/README.md) | Системная архитектура, модель данных и API | Подготовлены документы #9 |
+| [Architecture](architecture/README.md) | System, data, API, mobile и backend architecture | Подготовлены документы #9 и #10 |
 | [ADR](adr/README.md) | Журнал отдельных архитектурных решений | Приняты первые 7 решений |
 | [AI](ai/README.md) | Будущие правила AI-assisted разработки | Подготовлен раздел |
 
