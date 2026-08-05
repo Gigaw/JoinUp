@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import {
   ActivityIndicator,
@@ -9,29 +8,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import { responseError, toAppError } from '../../../shared/api/error';
-import { useApiClient } from '../../../shared/api/use-api-client';
+import { useEventList } from '../../../features/events/event-queries';
+import { useMe } from '../../../shared/profile/use-me';
 import { useSession } from '../../../shared/session/session-context';
 
 export default function EventsScreen() {
-  const client = useApiClient();
   const { logout } = useSession();
-  const query = useQuery({
-    queryKey: ['events', 'list'],
-    queryFn: async () => {
-      const cities = await client.GET('/v1/cities');
-      if (!cities.data) throw toAppError(responseError(cities));
-      const city = cities.data[0];
-      if (!city) return { items: [], nextCursor: null };
-      const events = await client.GET('/v1/events', {
-        params: { query: { cityId: city.id, limit: 20 } },
-      });
-      if (!events.data) throw toAppError(responseError(events));
-      return events.data;
-    },
-  });
+  const me = useMe();
+  const query = useEventList(me.data?.city?.id);
 
-  if (query.isLoading) {
+  if (me.isLoading || query.isLoading) {
     return <ActivityIndicator style={styles.center} />;
   }
 
@@ -48,8 +34,13 @@ export default function EventsScreen() {
           <Text style={styles.logout}>Выйти</Text>
         </Pressable>
       </View>
-      {query.error ? (
-        <Text style={styles.error}>{query.error.message}</Text>
+      <Link href="/events/create" asChild>
+        <Pressable style={styles.create} testID="events-create">
+          <Text style={styles.createText}>Создать активность</Text>
+        </Pressable>
+      </Link>
+      {me.error || query.error ? (
+        <Text style={styles.error}>{(me.error ?? query.error)?.message}</Text>
       ) : null}
       <FlatList
         data={query.data?.items ?? []}
@@ -106,6 +97,14 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '700' },
   subtitle: { color: '#5c6470', marginTop: 4 },
   logout: { color: '#2457d6', paddingTop: 8 },
+  create: {
+    alignItems: 'center',
+    backgroundColor: '#2457d6',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    padding: 13,
+  },
+  createText: { color: 'white', fontWeight: '600' },
   list: { padding: 16, gap: 12 },
   card: { backgroundColor: 'white', borderRadius: 16, padding: 18, gap: 7 },
   category: { color: '#2457d6', fontWeight: '600' },

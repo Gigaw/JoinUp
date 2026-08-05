@@ -1,48 +1,25 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  Alert,
   Button,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { responseError, toAppError } from '../../../shared/api/error';
-import { useApiClient } from '../../../shared/api/use-api-client';
+import {
+  useCancelEventMutation,
+  useJoinEventMutation,
+} from '../../../features/events/event-mutations';
+import { useEventDetails } from '../../../features/events/event-queries';
 
 export default function EventDetailsScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
-  const client = useApiClient();
-  const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: ['events', 'detail', eventId],
-    enabled: Boolean(eventId),
-    queryFn: async () => {
-      const result = await client.GET('/v1/events/{eventId}', {
-        params: { path: { eventId } },
-      });
-      if (!result.data) throw toAppError(responseError(result));
-      return result.data;
-    },
-  });
-  const join = useMutation({
-    mutationFn: async () => {
-      const result = await client.PUT('/v1/events/{eventId}/participation', {
-        params: { path: { eventId } },
-      });
-      if (!result.data) throw toAppError(responseError(result));
-      return result.data;
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['events', 'detail', eventId],
-        }),
-        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
-      ]);
-    },
-  });
+  const query = useEventDetails(eventId);
+  const join = useJoinEventMutation(eventId);
+  const cancel = useCancelEventMutation(eventId);
 
   if (query.isLoading) return <ActivityIndicator style={styles.center} />;
   if (query.error || !query.data) {
@@ -64,6 +41,9 @@ export default function EventDetailsScreen() {
     >
       <Text style={styles.category}>{event.category.name}</Text>
       <Text style={styles.title}>{event.title}</Text>
+      {event.status === 'cancelled' ? (
+        <Text style={styles.cancelled}>Активность отменена</Text>
+      ) : null}
       <Text style={styles.meta}>{formatDate(event.startsAt)}</Text>
       <Text style={styles.meta}>{event.meetingPlace}</Text>
       <Text style={styles.description}>{event.description}</Text>
@@ -85,6 +65,9 @@ export default function EventDetailsScreen() {
       {join.error ? (
         <Text style={styles.error}>{join.error.message}</Text>
       ) : null}
+      {cancel.error ? (
+        <Text style={styles.error}>{cancel.error.message}</Text>
+      ) : null}
       {canJoin ? (
         <Button
           title={
@@ -98,6 +81,38 @@ export default function EventDetailsScreen() {
           onPress={() => join.mutate()}
           testID="event-participation-submit"
         />
+      ) : null}
+      {event.availableActions.includes('edit') ? (
+        <Link href={{ pathname: './edit', params: { eventId } }} asChild>
+          <Pressable style={styles.secondaryButton} testID="event-edit">
+            <Text style={styles.secondaryButtonText}>Редактировать</Text>
+          </Pressable>
+        </Link>
+      ) : null}
+      {event.availableActions.includes('cancel') ? (
+        <Pressable
+          disabled={cancel.isPending}
+          onPress={() =>
+            Alert.alert(
+              'Отменить активность?',
+              'Она исчезнет из общего списка, а участники увидят статус отмены.',
+              [
+                { text: 'Не отменять', style: 'cancel' },
+                {
+                  text: 'Отменить',
+                  style: 'destructive',
+                  onPress: () => cancel.mutate(),
+                },
+              ],
+            )
+          }
+          style={styles.cancelButton}
+          testID="event-cancel"
+        >
+          <Text style={styles.cancelButtonText}>
+            {cancel.isPending ? 'Отменяем…' : 'Отменить активность'}
+          </Text>
+        </Pressable>
       ) : null}
     </ScrollView>
   );
@@ -120,5 +135,24 @@ const styles = StyleSheet.create({
   box: { backgroundColor: '#f0f3f8', borderRadius: 14, padding: 16, gap: 6 },
   boxTitle: { fontWeight: '600' },
   success: { color: '#067647', fontWeight: '600', textAlign: 'center' },
+  cancelled: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#fee4e2',
+    borderRadius: 8,
+    color: '#b42318',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    borderColor: '#2457d6',
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+  },
+  secondaryButtonText: { color: '#2457d6', fontWeight: '600' },
+  cancelButton: { alignItems: 'center', padding: 12 },
+  cancelButtonText: { color: '#b42318', fontWeight: '600' },
   error: { color: '#b42318', padding: 22 },
 });

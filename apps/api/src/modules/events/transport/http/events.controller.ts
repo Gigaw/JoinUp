@@ -1,16 +1,22 @@
 import {
+  Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Inject,
   Param,
   ParseUUIDPipe,
+  Patch,
+  Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -28,6 +34,7 @@ import {
 } from '../../../auth/transport/http/current-actor';
 import { SessionGuard } from '../../../auth/transport/http/session.guard';
 import { EventsQueryDto } from './events-query.dto';
+import { CreateEventDto, UpdateEventDto } from './event-mutation.dto';
 
 @ApiTags('events')
 @ApiBearerAuth()
@@ -35,6 +42,18 @@ import { EventsQueryDto } from './events-query.dto';
 @Controller('events')
 export class EventsController {
   constructor(@Inject(EventsService) private readonly events: EventsService) {}
+
+  @Post()
+  @ApiOperation({ operationId: 'createEvent' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiCreatedResponse({ type: EventDetailsDto })
+  create(
+    @Body() input: CreateEventDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<EventDetailsDto> {
+    return this.events.create(actor.userId, idempotencyKey, input);
+  }
 
   @Get()
   @ApiOperation({ operationId: 'listEvents' })
@@ -52,6 +71,34 @@ export class EventsController {
     @CurrentActor() actor: ActorContext,
   ): Promise<EventDetailsDto> {
     return this.events.get(eventId, actor.userId);
+  }
+
+  @Patch(':eventId')
+  @ApiOperation({ operationId: 'updateEvent' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiOkResponse({ type: EventDetailsDto })
+  update(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Body() input: UpdateEventDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<EventDetailsDto> {
+    return this.events.update(eventId, actor.userId, idempotencyKey, input);
+  }
+
+  @Post(':eventId/cancel')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'cancelEvent' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiOkResponse({ type: EventDetailsDto })
+  cancel(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<EventDetailsDto> {
+    return this.events.cancel(eventId, actor.userId, idempotencyKey);
   }
 
   @Put(':eventId/participation')

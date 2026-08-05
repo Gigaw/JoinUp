@@ -109,7 +109,7 @@ export interface paths {
         };
         get: operations["listEvents"];
         put?: never;
-        post?: never;
+        post: operations["createEvent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -126,6 +126,22 @@ export interface paths {
         get: operations["getEvent"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateEvent"];
+        trace?: never;
+    };
+    "/v1/events/{eventId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelEvent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -258,30 +274,21 @@ export interface components {
             cityId?: string;
             categoryIds?: string[];
         };
-        EventSummaryDto: {
-            /** Format: uuid */
-            id: string;
+        CreateEventDto: {
             title: string;
-            category: components["schemas"]["CategoryDto"];
-            city: components["schemas"]["CityDto"];
+            /** Format: uuid */
+            categoryId: string;
+            description: string;
+            /** Format: uuid */
+            cityId: string;
             meetingPlace: string;
             /** Format: date-time */
             startsAt: string;
             /** Format: date-time */
             endsAt?: string | null;
-            imageUrl?: string | null;
+            capacity: number;
             /** @enum {string} */
             participationMode: "automatic" | "approval_required";
-            participantsCount: number;
-            capacity: number;
-            isFull: boolean;
-            /** @enum {string} */
-            status: "published" | "cancelled";
-            contentVersion: number;
-        };
-        EventListDto: {
-            items: components["schemas"]["EventSummaryDto"][];
-            nextCursor?: string | null;
         };
         ParticipantDto: {
             /** Format: uuid */
@@ -328,6 +335,48 @@ export interface components {
             updatedAt: string;
             myParticipation?: components["schemas"]["MyParticipationDto"] | null;
             availableActions: string[];
+        };
+        EventSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            category: components["schemas"]["CategoryDto"];
+            city: components["schemas"]["CityDto"];
+            meetingPlace: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            imageUrl?: string | null;
+            /** @enum {string} */
+            participationMode: "automatic" | "approval_required";
+            participantsCount: number;
+            capacity: number;
+            isFull: boolean;
+            /** @enum {string} */
+            status: "published" | "cancelled";
+            contentVersion: number;
+        };
+        EventListDto: {
+            items: components["schemas"]["EventSummaryDto"][];
+            nextCursor?: string | null;
+        };
+        UpdateEventDto: {
+            expectedVersion: number;
+            title?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            description?: string;
+            /** Format: uuid */
+            cityId?: string;
+            meetingPlace?: string;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            capacity?: number;
+            /** @enum {string} */
+            participationMode?: "automatic" | "approval_required";
         };
         JoinEventDto: {
             participation: components["schemas"]["MyParticipationDto"];
@@ -509,10 +558,85 @@ export interface operations {
             };
         };
     };
+    createEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEventDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetailsDto"];
+                };
+            };
+        };
+    };
     getEvent: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetailsDto"];
+                };
+            };
+        };
+    };
+    updateEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEventDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetailsDto"];
+                };
+            };
+        };
+    };
+    cancelEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 eventId: string;
             };

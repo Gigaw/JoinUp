@@ -198,6 +198,50 @@
       }
     },
     "/v1/events": {
+      "post": {
+        "operationId": "createEvent",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      },
       "get": {
         "operationId": "listEvents",
         "parameters": [
@@ -255,6 +299,104 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      },
+      "patch": {
+        "operationId": "updateEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/v1/events/{eventId}/cancel": {
+      "post": {
+        "operationId": "cancelEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
               "type": "string"
             }
           }
@@ -604,24 +746,31 @@
           }
         }
       },
-      "EventSummaryDto": {
+      "CreateEventDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 80
+          },
+          "categoryId": {
             "type": "string",
             "format": "uuid"
           },
-          "title": {
-            "type": "string"
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000
           },
-          "category": {
-            "$ref": "#/components/schemas/CategoryDto"
-          },
-          "city": {
-            "$ref": "#/components/schemas/CityDto"
+          "cityId": {
+            "type": "string",
+            "format": "uuid"
           },
           "meetingPlace": {
-            "type": "string"
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 300
           },
           "startsAt": {
             "type": "string",
@@ -632,9 +781,10 @@
             "format": "date-time",
             "nullable": true
           },
-          "imageUrl": {
-            "type": "string",
-            "nullable": true
+          "capacity": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 10000
           },
           "participationMode": {
             "type": "string",
@@ -642,58 +792,17 @@
               "automatic",
               "approval_required"
             ]
-          },
-          "participantsCount": {
-            "type": "number"
-          },
-          "capacity": {
-            "type": "number"
-          },
-          "isFull": {
-            "type": "boolean"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "published",
-              "cancelled"
-            ]
-          },
-          "contentVersion": {
-            "type": "number"
           }
         },
         "required": [
-          "id",
           "title",
-          "category",
-          "city",
+          "categoryId",
+          "description",
+          "cityId",
           "meetingPlace",
           "startsAt",
-          "participationMode",
-          "participantsCount",
           "capacity",
-          "isFull",
-          "status",
-          "contentVersion"
-        ]
-      },
-      "EventListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventSummaryDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "items"
+          "participationMode"
         ]
       },
       "ParticipantDto": {
@@ -867,6 +976,154 @@
           "createdAt",
           "updatedAt",
           "availableActions"
+        ]
+      },
+      "EventSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryDto"
+          },
+          "city": {
+            "$ref": "#/components/schemas/CityDto"
+          },
+          "meetingPlace": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published",
+              "cancelled"
+            ]
+          },
+          "contentVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "meetingPlace",
+          "startsAt",
+          "participationMode",
+          "participantsCount",
+          "capacity",
+          "isFull",
+          "status",
+          "contentVersion"
+        ]
+      },
+      "EventListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummaryDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "UpdateEventDto": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 80
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000
+          },
+          "cityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "meetingPlace": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 300
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "capacity": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 10000
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          }
+        },
+        "required": [
+          "expectedVersion"
         ]
       },
       "JoinEventDto": {
