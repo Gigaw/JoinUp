@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -23,6 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import {
+  EventApplicationListDto,
   EventDetailsDto,
   EventListDto,
   JoinEventDto,
@@ -34,7 +36,12 @@ import {
 } from '../../../auth/transport/http/current-actor';
 import { SessionGuard } from '../../../auth/transport/http/session.guard';
 import { EventsQueryDto } from './events-query.dto';
-import { CreateEventDto, UpdateEventDto } from './event-mutation.dto';
+import { ApplicationsQueryDto } from './applications-query.dto';
+import {
+  ApplicationDecisionDto,
+  CreateEventDto,
+  UpdateEventDto,
+} from './event-mutation.dto';
 
 @ApiTags('events')
 @ApiBearerAuth()
@@ -71,6 +78,18 @@ export class EventsController {
     @CurrentActor() actor: ActorContext,
   ): Promise<EventDetailsDto> {
     return this.events.get(eventId, actor.userId);
+  }
+
+  @Get(':eventId/applications')
+  @ApiOperation({ operationId: 'listEventApplications' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiOkResponse({ type: EventApplicationListDto })
+  applications(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Query() query: ApplicationsQueryDto,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<EventApplicationListDto> {
+    return this.events.applications(eventId, actor.userId, query.status);
   }
 
   @Patch(':eventId')
@@ -111,5 +130,37 @@ export class EventsController {
     @CurrentActor() actor: ActorContext,
   ): Promise<JoinEventDto> {
     return this.events.join(eventId, actor.userId);
+  }
+
+  @Delete(':eventId/participation')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'leaveEvent' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiOkResponse({ type: JoinEventDto })
+  leave(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<JoinEventDto> {
+    return this.events.leave(eventId, actor.userId);
+  }
+
+  @Put(':eventId/applications/:participationId/decision')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'decideEventApplication' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiParam({ name: 'participationId', format: 'uuid' })
+  @ApiOkResponse({ type: JoinEventDto })
+  decideApplication(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Param('participationId', new ParseUUIDPipe()) participationId: string,
+    @Body() input: ApplicationDecisionDto,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<JoinEventDto> {
+    return this.events.decideApplication(
+      eventId,
+      participationId,
+      actor.userId,
+      input.decision,
+    );
   }
 }

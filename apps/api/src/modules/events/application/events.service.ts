@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import type {
+  EventApplicationListDto,
   EventDetailsDto,
   EventListDto,
   EventSummaryDto,
@@ -17,6 +18,7 @@ import type {
 } from '../../../platform/http/api.dto';
 import { DomainError } from '../../../platform/http/domain.error';
 import {
+  ApplicationDecisionDto,
   CreateEventDto,
   hasEventChanges,
   UpdateEventDto,
@@ -274,6 +276,40 @@ export class EventsService {
     return this.details(event, actorId);
   }
 
+  async applications(
+    eventId: string,
+    actorId: string,
+    status: ParticipationStatus = ParticipationStatus.pending,
+  ): Promise<EventApplicationListDto> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: eventInclude,
+    });
+    if (!event) this.notFound();
+    this.requireOrganizer(event, actorId);
+    if (event.participationMode !== ParticipationMode.approval_required) {
+      throw new DomainError(
+        409,
+        'APPLICATION_ALREADY_DECIDED',
+        'Заявки доступны только для событий с подтверждением.',
+      );
+    }
+    return {
+      items: event.participations
+        .filter((participation) => participation.status === status)
+        .sort(
+          (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
+        )
+        .map((participation) => ({
+          id: participation.id,
+          applicant: this.participant(participation.user),
+          status: participation.status,
+          createdAt: participation.createdAt.toISOString(),
+          statusChangedAt: participation.statusChangedAt.toISOString(),
+        })),
+    };
+  }
+
   async join(eventId: string, actorId: string): Promise<JoinEventDto> {
     return this.prisma.$transaction(async (transaction) => {
       const locked = await transaction.$queryRaw<Array<{ id: string }>>`
@@ -344,9 +380,185 @@ export class EventsService {
           seenEventVersion: event.contentVersion,
         },
       });
+      if (
+        targetStatus === ParticipationStatus.going &&
+        goingCount + 1 === event.capacity
+      ) {
+        await transaction.eventParticipation.updateMany({
+          where: {
+            eventId,
+            id: { not: participation.id },
+            status: ParticipationStatus.pending,
+          },
+          data: {
+            status: ParticipationStatus.rejected,
+            statusChangedAt: new Date(),
+          },
+        });
+      }
       return this.joinResult(
-        { ...event, participations: [...event.participations, participation] },
+        {
+          ...event,
+          participations: [
+            ...event.participations.map((existingParticipation) =>
+              targetStatus === ParticipationStatus.going &&
+              goingCount + 1 === event.capacity &&
+              existingParticipation.status === ParticipationStatus.pending
+                ? {
+                    ...existingParticipation,
+                    status: ParticipationStatus.rejected,
+                  }
+                : existingParticipation,
+            ),
+            participation,
+          ],
+        },
         participation,
+      );
+    });
+  }
+
+  async leave(eventId: string, actorId: string): Promise<JoinEventDto> {
+    return this.prisma.$transaction(async (transaction) => {
+      await this.lockEvent(transaction, eventId);
+      const event = await transaction.event.findUnique({
+        where: { id: eventId },
+        include: eventInclude,
+      });
+      if (!event) this.notFound();
+      this.requireMutable(event);
+      if (event.organizerId === actorId) {
+        throw new DomainError(
+          409,
+          'ORGANIZER_CANNOT_LEAVE',
+          'Организатор не может отказаться от участия.',
+        );
+      }
+      const participation = event.participations.find(
+        ({ userId }) => userId === actorId,
+      );
+      if (!participation) this.notFound();
+      const targetStatus =
+        participation.status === ParticipationStatus.pending
+          ? ParticipationStatus.withdrawn
+          : ParticipationStatus.cancelled;
+      if (
+        participation.status === ParticipationStatus.withdrawn ||
+        participation.status === ParticipationStatus.cancelled
+      ) {
+        return this.joinResult(event, participation);
+      }
+      if (
+        participation.status !== ParticipationStatus.pending &&
+        participation.status !== ParticipationStatus.going
+      ) {
+        throw new DomainError(
+          409,
+          'PARTICIPATION_TERMINAL',
+          'Текущее участие нельзя изменить.',
+        );
+      }
+      const updated = await transaction.eventParticipation.update({
+        where: { id: participation.id },
+        data: { status: targetStatus, statusChangedAt: new Date() },
+      });
+      return this.joinResult(
+        {
+          ...event,
+          participations: event.participations.map((current) =>
+            current.id === updated.id ? updated : current,
+          ),
+        },
+        updated,
+      );
+    });
+  }
+
+  async decideApplication(
+    eventId: string,
+    participationId: string,
+    actorId: string,
+    decision: ApplicationDecisionDto['decision'],
+  ): Promise<JoinEventDto> {
+    return this.prisma.$transaction(async (transaction) => {
+      await this.lockEvent(transaction, eventId);
+      const event = await transaction.event.findUnique({
+        where: { id: eventId },
+        include: eventInclude,
+      });
+      if (!event) this.notFound();
+      this.requireOrganizer(event, actorId);
+      this.requireMutable(event);
+      if (event.participationMode !== ParticipationMode.approval_required) {
+        throw new DomainError(
+          409,
+          'APPLICATION_ALREADY_DECIDED',
+          'Заявки доступны только для событий с подтверждением.',
+        );
+      }
+      const participation = event.participations.find(
+        ({ id }) => id === participationId,
+      );
+      if (!participation) this.notFound();
+      const targetStatus =
+        decision === 'approve'
+          ? ParticipationStatus.going
+          : ParticipationStatus.rejected;
+      if (participation.status === targetStatus) {
+        return this.joinResult(event, participation);
+      }
+      if (participation.status !== ParticipationStatus.pending) {
+        throw new DomainError(
+          409,
+          'APPLICATION_ALREADY_DECIDED',
+          'Решение по заявке уже принято.',
+        );
+      }
+      const goingCount = event.participations.filter(
+        ({ status }) => status === ParticipationStatus.going,
+      ).length;
+      if (
+        targetStatus === ParticipationStatus.going &&
+        goingCount >= event.capacity
+      ) {
+        throw new DomainError(
+          409,
+          'EVENT_FULL',
+          'В событии больше нет свободных мест.',
+        );
+      }
+      const updated = await transaction.eventParticipation.update({
+        where: { id: participation.id },
+        data: { status: targetStatus, statusChangedAt: new Date() },
+      });
+      const isNowFull =
+        targetStatus === ParticipationStatus.going &&
+        goingCount + 1 === event.capacity;
+      if (isNowFull) {
+        await transaction.eventParticipation.updateMany({
+          where: {
+            eventId,
+            id: { not: updated.id },
+            status: ParticipationStatus.pending,
+          },
+          data: {
+            status: ParticipationStatus.rejected,
+            statusChangedAt: new Date(),
+          },
+        });
+      }
+      return this.joinResult(
+        {
+          ...event,
+          participations: event.participations.map((current) => {
+            if (current.id === updated.id) return updated;
+            if (isNowFull && current.status === ParticipationStatus.pending) {
+              return { ...current, status: ParticipationStatus.rejected };
+            }
+            return current;
+          }),
+        },
+        updated,
       );
     });
   }

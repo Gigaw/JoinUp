@@ -132,6 +132,22 @@ export interface paths {
         patch: operations["updateEvent"];
         trace?: never;
     };
+    "/v1/events/{eventId}/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listEventApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/events/{eventId}/cancel": {
         parameters: {
             query?: never;
@@ -157,6 +173,22 @@ export interface paths {
         };
         get?: never;
         put: operations["joinEvent"];
+        post?: never;
+        delete: operations["leaveEvent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/events/{eventId}/applications/{participationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["decideEventApplication"];
         post?: never;
         delete?: never;
         options?: never;
@@ -361,6 +393,20 @@ export interface components {
             items: components["schemas"]["EventSummaryDto"][];
             nextCursor?: string | null;
         };
+        EventApplicationDto: {
+            /** Format: uuid */
+            id: string;
+            applicant: components["schemas"]["ParticipantDto"];
+            /** @enum {string} */
+            status: "pending" | "going" | "rejected" | "withdrawn" | "cancelled";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            statusChangedAt: string;
+        };
+        EventApplicationListDto: {
+            items: components["schemas"]["EventApplicationDto"][];
+        };
         UpdateEventDto: {
             expectedVersion: number;
             title?: string;
@@ -383,6 +429,10 @@ export interface components {
             participantsCount: number;
             capacity: number;
             isFull: boolean;
+        };
+        ApplicationDecisionDto: {
+            /** @enum {string} */
+            decision: "approve" | "reject";
         };
     };
     responses: never;
@@ -631,6 +681,29 @@ export interface operations {
             };
         };
     };
+    listEventApplications: {
+        parameters: {
+            query?: {
+                status?: "pending" | "going" | "rejected" | "withdrawn" | "cancelled";
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventApplicationListDto"];
+                };
+            };
+        };
+    };
     cancelEvent: {
         parameters: {
             query?: never;
@@ -664,6 +737,53 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinEventDto"];
+                };
+            };
+        };
+    };
+    leaveEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinEventDto"];
+                };
+            };
+        };
+    };
+    decideEventApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                participationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationDecisionDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
