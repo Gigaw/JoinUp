@@ -15,6 +15,11 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerBackTitle: 'Назад' }}>
       <Stack.Screen name="events/index" options={{ title: 'Активности' }} />
       <Stack.Screen name="events/[eventId]" options={{ title: 'Активность' }} />
+      <Stack.Screen
+        name="events/create"
+        options={{ title: 'Новая активность' }}
+      />
+      <Stack.Screen name="events/edit" options={{ title: 'Редактирование' }} />
     </Stack>
   );
 }

@@ -7,7 +7,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --exclude test/e2e/**",
+    "test": "vitest run --exclude 'test/e2e/**'",
     "test:e2e": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.e2e.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
