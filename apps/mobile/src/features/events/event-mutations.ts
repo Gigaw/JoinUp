@@ -112,6 +112,63 @@ export function useJoinEventMutation(eventId: string) {
   });
 }
 
+export function useLeaveEventMutation(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const result = await client.DELETE('/v1/events/{eventId}/participation', {
+        params: { path: { eventId } },
+      });
+      if (!result.data) throw toAppError(responseError(result));
+      return result.data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['events', 'detail', eventId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+      ]);
+    },
+  });
+}
+
+export function useDecideEventApplicationMutation(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      decision,
+      participationId,
+    }: {
+      decision: 'approve' | 'reject';
+      participationId: string;
+    }) => {
+      const result = await client.PUT(
+        '/v1/events/{eventId}/applications/{participationId}/decision',
+        {
+          body: { decision },
+          params: { path: { eventId, participationId } },
+        },
+      );
+      if (!result.data) throw toAppError(responseError(result));
+      return result.data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['events', 'detail', eventId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['events', 'applications', eventId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+      ]);
+    },
+  });
+}
+
 async function runPendingMutation<T>(
   operation: string,
   payload: unknown,

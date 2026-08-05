@@ -132,6 +132,12 @@ export class UpdateEventDto {
   participationMode?: 'automatic' | 'approval_required';
 }
 
+export class ApplicationDecisionDto {
+  @ApiProperty({ enum: ['approve', 'reject'] })
+  @IsIn(['approve', 'reject'])
+  decision!: 'approve' | 'reject';
+}
+
 export function hasEventChanges(input: UpdateEventDto): boolean {
   return Object.keys(input).some((key) => key !== 'expectedVersion');
 }

@@ -35,3 +35,21 @@ export function useEventList(cityId: string | undefined) {
     },
   });
 }
+
+export function useEventApplications(eventId: string, enabled: boolean) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: ['events', 'applications', eventId, 'pending'],
+    enabled: Boolean(eventId) && enabled,
+    queryFn: async () => {
+      const result = await client.GET('/v1/events/{eventId}/applications', {
+        params: {
+          path: { eventId },
+          query: { status: 'pending' },
+        },
+      });
+      if (!result.data) throw toAppError(responseError(result));
+      return result.data;
+    },
+  });
+}

@@ -60,7 +60,11 @@ describe('event management', () => {
     return { token, userId };
   };
 
-  const eventInput = (suffix: string) => ({
+  const eventInput = (
+    suffix: string,
+    participationMode: 'automatic' | 'approval_required' = 'automatic',
+    capacity = 8,
+  ) => ({
     title: `Событие ${suffix}`,
     categoryId,
     description: 'Подробное описание тестового события для проверки API.',
@@ -68,8 +72,8 @@ describe('event management', () => {
     meetingPlace: 'Площадка рядом с центральным парком',
     startsAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
     endsAt: new Date(Date.now() + 50 * 60 * 60 * 1000).toISOString(),
-    capacity: 8,
-    participationMode: 'automatic',
+    capacity,
+    participationMode,
   });
 
   const createEvent = async (token: string, suffix: string) =>
@@ -335,5 +339,131 @@ describe('event management', () => {
       .set('Idempotency-Key', randomUUID())
       .expect(409)
       .expect(({ body }) => expect(body.code).toBe('EVENT_STARTED'));
+  });
+
+  it('withdraws pending applications and lets confirmed participants leave', async () => {
+    const organizer = await register('leave-owner');
+    const attendee = await register('leave-attendee');
+    const created = await createEvent(organizer.token, 'отказ участника');
+    const eventId = created.body.id as string;
+
+    await request(app.getHttpServer())
+      .put(`/v1/events/${eventId}/participation`)
+      .set('Authorization', `Bearer ${attendee.token}`)
+      .expect(200);
+    const left = await request(app.getHttpServer())
+      .delete(`/v1/events/${eventId}/participation`)
+      .set('Authorization', `Bearer ${attendee.token}`)
+      .expect(200);
+    const replay = await request(app.getHttpServer())
+      .delete(`/v1/events/${eventId}/participation`)
+      .set('Authorization', `Bearer ${attendee.token}`)
+      .expect(200);
+    expect(left.body).toMatchObject({
+      participation: { status: 'cancelled' },
+      participantsCount: 1,
+    });
+    expect(replay.body).toEqual(left.body);
+
+    await request(app.getHttpServer())
+      .delete(`/v1/events/${eventId}/participation`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(409)
+      .expect(({ body }) => expect(body.code).toBe('ORGANIZER_CANNOT_LEAVE'));
+
+    const approvalEvent = await request(app.getHttpServer())
+      .post('/v1/events')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .set('Idempotency-Key', randomUUID())
+      .send(eventInput('отзыв заявки', 'approval_required'))
+      .expect(201);
+    await request(app.getHttpServer())
+      .put(`/v1/events/${approvalEvent.body.id as string}/participation`)
+      .set('Authorization', `Bearer ${attendee.token}`)
+      .expect(200);
+    const withdrawn = await request(app.getHttpServer())
+      .delete(`/v1/events/${approvalEvent.body.id as string}/participation`)
+      .set('Authorization', `Bearer ${attendee.token}`)
+      .expect(200);
+    expect(withdrawn.body).toMatchObject({
+      participation: { status: 'withdrawn' },
+      participantsCount: 1,
+    });
+  });
+
+  it('serializes approval decisions and rejects remaining pending applications', async () => {
+    const organizer = await register('decision-owner');
+    const firstApplicant = await register('decision-first');
+    const secondApplicant = await register('decision-second');
+    const outsider = await register('decision-outsider');
+    const created = await request(app.getHttpServer())
+      .post('/v1/events')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .set('Idempotency-Key', randomUUID())
+      .send(eventInput('решение по заявке', 'approval_required', 2))
+      .expect(201);
+    const eventId = created.body.id as string;
+
+    const applications = await Promise.all(
+      [firstApplicant, secondApplicant].map(async (applicant) => {
+        const response = await request(app.getHttpServer())
+          .put(`/v1/events/${eventId}/participation`)
+          .set('Authorization', `Bearer ${applicant.token}`)
+          .expect(200);
+        return response.body.participation.id as string;
+      }),
+    );
+
+    const pendingApplications = await request(app.getHttpServer())
+      .get(`/v1/events/${eventId}/applications`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .query({ status: 'pending' })
+      .expect(200);
+    expect(
+      pendingApplications.body.items.map(({ id }: { id: string }) => id),
+    ).toEqual(expect.arrayContaining(applications));
+    await request(app.getHttpServer())
+      .get(`/v1/events/${eventId}/applications`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+      .expect(({ body }) => expect(body.code).toBe('FORBIDDEN'));
+
+    await request(app.getHttpServer())
+      .put(`/v1/events/${eventId}/applications/${applications[0]}/decision`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .send({ decision: 'approve' })
+      .expect(403)
+      .expect(({ body }) => expect(body.code).toBe('FORBIDDEN'));
+
+    const decisions = await Promise.all(
+      applications.map((participationId) =>
+        request(app.getHttpServer())
+          .put(`/v1/events/${eventId}/applications/${participationId}/decision`)
+          .set('Authorization', `Bearer ${organizer.token}`)
+          .send({ decision: 'approve' }),
+      ),
+    );
+    expect(decisions.map(({ status }) => status).sort()).toEqual([200, 409]);
+
+    const participations = await prisma.eventParticipation.findMany({
+      where: { eventId, id: { in: applications } },
+      orderBy: { id: 'asc' },
+      select: { id: true, status: true },
+    });
+    expect(participations.map(({ status }) => status).sort()).toEqual([
+      'going',
+      'rejected',
+    ]);
+    const approved = participations.find(({ status }) => status === 'going');
+    if (!approved) throw new Error('Approved participation was not found');
+    const replay = await request(app.getHttpServer())
+      .put(`/v1/events/${eventId}/applications/${approved.id}/decision`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .send({ decision: 'approve' })
+      .expect(200);
+    expect(replay.body).toMatchObject({
+      participation: { id: approved.id, status: 'going' },
+      isFull: true,
+    });
   });
 });

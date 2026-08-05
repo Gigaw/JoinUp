@@ -379,6 +379,58 @@
         ]
       }
     },
+    "/v1/events/{eventId}/applications": {
+      "get": {
+        "operationId": "listEventApplications",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "going",
+                "rejected",
+                "withdrawn",
+                "cancelled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventApplicationListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/v1/events/{eventId}/cancel": {
       "post": {
         "operationId": "cancelEvent",
@@ -438,6 +490,97 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinEventDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      },
+      "delete": {
+        "operationId": "leaveEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinEventDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/v1/events/{eventId}/applications/{participationId}/decision": {
+      "put": {
+        "operationId": "decideEventApplication",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "participationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationDecisionDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1070,6 +1213,57 @@
           "items"
         ]
       },
+      "EventApplicationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicant": {
+            "$ref": "#/components/schemas/ParticipantDto"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "going",
+              "rejected",
+              "withdrawn",
+              "cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusChangedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "applicant",
+          "status",
+          "createdAt",
+          "statusChangedAt"
+        ]
+      },
+      "EventApplicationListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventApplicationDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "UpdateEventDto": {
         "type": "object",
         "properties": {
@@ -1147,6 +1341,21 @@
           "participantsCount",
           "capacity",
           "isFull"
+        ]
+      },
+      "ApplicationDecisionDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          }
+        },
+        "required": [
+          "decision"
         ]
       }
     }

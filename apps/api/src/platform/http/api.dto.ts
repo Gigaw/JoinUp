@@ -106,3 +106,18 @@ export class JoinEventDto {
   @ApiProperty() capacity!: number;
   @ApiProperty() isFull!: boolean;
 }
+
+export class EventApplicationDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ type: ParticipantDto }) applicant!: ParticipantDto;
+  @ApiProperty({
+    enum: ['pending', 'going', 'rejected', 'withdrawn', 'cancelled'],
+  })
+  status!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ format: 'date-time' }) statusChangedAt!: string;
+}
+
+export class EventApplicationListDto {
+  @ApiProperty({ type: [EventApplicationDto] }) items!: EventApplicationDto[];
+}
