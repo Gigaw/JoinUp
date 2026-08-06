@@ -5,6 +5,7 @@ import { colors } from '../../../shared/theme/tokens';
 const icons: Record<string, string> = {
   home: '⌂',
   activities: '◷',
+  chats: '◌',
   profile: '◉',
 };
 
@@ -37,6 +38,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="home" options={{ title: 'Главная' }} />
       <Tabs.Screen name="activities" options={{ title: 'Мои' }} />
+      <Tabs.Screen name="chats" options={{ title: 'Чаты' }} />
       <Tabs.Screen name="profile" options={{ title: 'Профиль' }} />
     </Tabs>
   );

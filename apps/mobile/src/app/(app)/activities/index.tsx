@@ -78,32 +78,50 @@ export default function MyActivitiesScreen() {
           <Text style={styles.empty}>В этой вкладке пока нет активностей.</Text>
         }
         renderItem={({ item }) => (
-          <Link
-            href={{
-              pathname: '/events/[eventId]',
-              params: { eventId: item.id },
-            }}
-            asChild
-          >
-            <Pressable style={styles.card} testID={`my-activity-${item.id}`}>
-              <Text style={styles.category}>{item.category.name}</Text>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text>{formatDate(item.startsAt)}</Text>
-              {item.myParticipation ? (
-                <Text style={styles.status}>
-                  {participationLabel(item.myParticipation.status)}
-                </Text>
-              ) : null}
-              {item.pendingApplicationsCount !== null ? (
-                <Text style={styles.status}>
-                  Заявок ожидает: {item.pendingApplicationsCount}
-                </Text>
-              ) : null}
-              {item.hasEventUpdates ? (
-                <Text style={styles.update}>Есть изменения в активности</Text>
-              ) : null}
-            </Pressable>
-          </Link>
+          <View style={styles.card} testID={`my-activity-${item.id}`}>
+            <Link
+              href={{
+                pathname: '/events/[eventId]',
+                params: { eventId: item.id },
+              }}
+              asChild
+            >
+              <Pressable style={styles.eventLink}>
+                <Text style={styles.category}>{item.category.name}</Text>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text>{formatDate(item.startsAt)}</Text>
+                {item.myParticipation ? (
+                  <Text style={styles.status}>
+                    {participationLabel(item.myParticipation.status)}
+                  </Text>
+                ) : null}
+                {item.pendingApplicationsCount !== null ? (
+                  <Text style={styles.status}>
+                    Заявок ожидает: {item.pendingApplicationsCount}
+                  </Text>
+                ) : null}
+                {item.hasEventUpdates ? (
+                  <Text style={styles.update}>Есть изменения в активности</Text>
+                ) : null}
+              </Pressable>
+            </Link>
+            {item.myParticipation?.status === 'going' ? (
+              <Link
+                href={{
+                  pathname: '/chats/[eventId]',
+                  params: { eventId: item.id },
+                }}
+                asChild
+              >
+                <Pressable
+                  style={styles.chatButton}
+                  testID={`activity-chat-${item.id}`}
+                >
+                  <Text style={styles.chatButtonText}>Открыть чат</Text>
+                </Pressable>
+              </Link>
+            ) : null}
+          </View>
         )}
       />
     </SafeAreaView>
@@ -177,9 +195,18 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.medium,
     borderWidth: 1,
-    gap: 7,
     padding: 18,
   },
+  eventLink: { gap: 7 },
+  chatButton: {
+    alignItems: 'center',
+    borderColor: colors.primary,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    marginTop: 14,
+    padding: 10,
+  },
+  chatButtonText: { color: colors.primary, fontWeight: '700' },
   category: { color: colors.primary, fontWeight: '700' },
   title: { color: colors.text, fontSize: 20, fontWeight: '800' },
   status: { color: colors.textMuted },

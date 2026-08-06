@@ -116,6 +116,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/chats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMyChats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/events/{eventId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listEventMessages"];
+        put?: never;
+        post: operations["createEventMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/events": {
         parameters: {
             query?: never;
@@ -358,6 +390,46 @@ export interface components {
             /** Format: uuid */
             cityId?: string;
             categoryIds?: string[];
+        };
+        ChatSummaryDto: {
+            /** Format: uuid */
+            eventId: string;
+            title: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** @enum {string} */
+            eventStatus: "published" | "cancelled" | "completed";
+            /** Format: date-time */
+            lastMessageAt?: string | null;
+            /** @default false */
+            readOnly: boolean;
+        };
+        ChatListDto: {
+            items: components["schemas"]["ChatSummaryDto"][];
+            nextCursor?: string | null;
+        };
+        EventMessageAuthorDto: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarUrl?: string | null;
+        };
+        EventMessageDto: {
+            /** Format: uuid */
+            id: string;
+            author: components["schemas"]["EventMessageAuthorDto"];
+            text: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        EventMessageListDto: {
+            items: components["schemas"]["EventMessageDto"][];
+            nextCursor?: string | null;
+            /** @default false */
+            readOnly: boolean;
+        };
+        CreateEventMessageDto: {
+            text: string;
         };
         CreateEventDto: {
             title: string;
@@ -649,6 +721,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryDto"][];
+                };
+            };
+        };
+    };
+    listMyChats: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatListDto"];
+                };
+            };
+        };
+    };
+    listEventMessages: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventMessageListDto"];
+                };
+            };
+        };
+    };
+    createEventMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEventMessageDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventMessageDto"];
                 };
             };
         };

@@ -30,7 +30,9 @@ erDiagram
     USER ||--o{ EVENT : organizes
     CATEGORY ||--o{ EVENT : classifies
     EVENT ||--o{ EVENT_PARTICIPATION : has
+    EVENT ||--o{ EVENT_MESSAGE : has
     USER ||--o{ EVENT_PARTICIPATION : participates
+    USER ||--o{ EVENT_MESSAGE : authors
     USER ||--o{ IDEMPOTENCY_RECORD : initiates
 ```
 
@@ -185,7 +187,28 @@ withdrawal или cancellation. Повторная подача после `reje
 - `(event_id, status, created_at)` для participants/applications и подсчёта вместимости;
 - `(user_id, status, updated_at)` для «Моих активностей».
 
-### 3.8. `idempotency_records`
+### 3.8. `event_messages`
+
+| Поле | Тип | Ограничения и назначение |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key, cursor tie-breaker |
+| `event_id` | `uuid` | FK → `events.id`, `ON DELETE CASCADE` |
+| `author_id` | `uuid` | FK → `users.id`, `ON DELETE RESTRICT` для сохранения авторства истории |
+| `text` | `varchar(1000)` | Trimmed текст организационного сообщения, 1–1000 символов |
+| `created_at` | `timestamptz` | Время публикации, immutable |
+
+У события нет отдельной сущности чата: его scope задаёт `event_id`. Индекс
+`(event_id, created_at, id)` поддерживает обратную cursor pagination. Текст и author projection
+доступны только организатору и актуальному участнику `going`. При записи transaction сначала
+блокирует строку event, затем повторно читает participation; это исключает отправку одновременно
+с переходом participation в terminal status.
+
+Сообщения становятся read-only после `starts_at` или отмены. Они выдаются не более 30 дней после
+`ends_at` (либо `starts_at`, если конец не задан) или `cancelled_at`; затем scheduled housekeeping
+удаляет записи. Текст не записывается в application/technical logs или analytics. До #7 нет
+пользовательского удаления, редактирования и модераторского доступа.
+
+### 3.9. `idempotency_records`
 
 | Поле | Тип | Ограничения и назначение |
 | --- | --- | --- |
@@ -204,7 +227,8 @@ withdrawal или cancellation. Повторная подача после `reje
 Unique `(user_id, operation, key)` не позволяет выполнить одну операцию повторно. Повтор с другим
 `request_hash` возвращает `IDEMPOTENCY_KEY_REUSED`. Response body не должен содержать bearer token,
 пароль, дату рождения или другие поля, которые нельзя хранить в техническом журнале. Поэтому
-idempotency storage применяется к event и media mutations, но не к login/registration responses.
+idempotency storage применяется к event, media и message mutations, но не к login/registration
+responses.
 Публично гарантированное окно replay составляет минимум 24 часа; первый каркас сохраняет запись и
 результат 7 дней, после чего housekeeping может удалить их.
 
@@ -223,6 +247,7 @@ idempotency storage применяется к event и media mutations, но н�
 | После старта/отмены нет изменений участия | Проверка после row lock | Статус и время хранятся в event |
 | Organizer не отказывается от участия | Проверка `organizer_id` | Participation остаётся `going` |
 | Capacity не уменьшается ниже going count | Проверка под event row lock | `capacity >= 2` |
+| Сообщение не создаётся после terminal participation | Event lock, затем актуальная `going` participation | FK и единый порядок блокировки |
 
 ## 5. Протокол конкурентной записи
 
@@ -260,11 +285,17 @@ deadlock или transient serialization error API может повторить 
 который может открыть событие. Pending applications доступны только организатору соответствующего
 события и самому заявителю в его «Моих активностях».
 
+Текст `event_messages` и имя автора доступны только organizer и текущим `going` participants этого
+же event. Они не включаются в analytics или технические журналы; access проверяется до чтения
+страницы и повторно под event lock до записи.
+
 ## 7. Удаление и хранение
 
 Обычная отмена события меняет статус и не удаляет event или participation. Срок хранения
 завершённых и отменённых событий остаётся открытым продуктовым вопросом. До его решения внешние
-foreign keys используют поведение, исключающее случайное каскадное удаление истории.
+foreign keys используют поведение, исключающее случайное каскадное удаление истории. Сообщения
+чата удаляются housekeeping-процессом через 30 дней после окончания или отмены активности; до
+этого они остаются доступны только для чтения после terminal state.
 
 Удаление аккаунта, анонимизация и retention пользовательских media objects будут определены до
 публичного релиза. Технические записи идемпотентности хранятся 7 дней и удаляются отдельной
