@@ -67,7 +67,7 @@ export default function OnboardingScreen() {
       const result = await client.PATCH('/v1/me', { body: values });
       if (!result.data) throw toAppError(responseError(result));
       queryClient.setQueryData<Me>(['me'], result.data);
-      router.replace('/events');
+      router.replace('/home');
     } catch (error) {
       setError('root', {
         message:

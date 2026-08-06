@@ -10,7 +10,7 @@ export default function OnboardingLayout() {
   if (destination === 'loading') return <NavigationLoading />;
   if (destination === 'error') return <NavigationError retry={retry} />;
   if (destination === 'sign-in') return <Redirect href="/sign-in" />;
-  if (destination === 'events') return <Redirect href="/events" />;
+  if (destination === 'events') return <Redirect href="/home" />;
   return (
     <Stack>
       <Stack.Screen name="onboarding" options={{ title: 'Ваш профиль' }} />

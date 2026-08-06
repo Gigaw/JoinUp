@@ -9,10 +9,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   type ActivitiesTab,
   useMyActivities,
 } from '../../../features/activities/activity-queries';
+import { colors, radius } from '../../../shared/theme/tokens';
 
 const tabs: Array<{ value: ActivitiesTab; label: string }> = [
   { value: 'upcoming', label: 'Скоро' },
@@ -27,15 +29,27 @@ export default function MyActivitiesScreen() {
   const query = useMyActivities(tab);
   if (query.isLoading) return <ActivityIndicator style={styles.center} />;
   return (
-    <View style={styles.container} testID="my-activities-screen">
-      <FlatList
-        horizontal
-        data={tabs}
-        keyExtractor={(item) => item.value}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabs}
-        renderItem={({ item }) => (
+    <SafeAreaView
+      edges={['top']}
+      style={styles.container}
+      testID="my-activities-screen"
+    >
+      <View style={styles.header}>
+        <Text style={styles.screenTitle}>Мои активности</Text>
+        <Link href="/events/create" asChild>
           <Pressable
+            accessibilityLabel="Создать активность"
+            style={styles.createButton}
+            testID="events-create"
+          >
+            <Text style={styles.createButtonIcon}>+</Text>
+          </Pressable>
+        </Link>
+      </View>
+      <View style={styles.filters}>
+        {tabs.map((item) => (
+          <Pressable
+            key={item.value}
             onPress={() => setTab(item.value)}
             style={[styles.tab, tab === item.value && styles.activeTab]}
           >
@@ -45,8 +59,8 @@ export default function MyActivitiesScreen() {
               {item.label}
             </Text>
           </Pressable>
-        )}
-      />
+        ))}
+      </View>
       {query.error ? (
         <Text style={styles.error}>{query.error.message}</Text>
       ) : null}
@@ -92,7 +106,7 @@ export default function MyActivitiesScreen() {
           </Link>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -115,24 +129,61 @@ function formatDate(value: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f6f7f9' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1 },
-  tabs: { padding: 16, gap: 8 },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+  },
+  screenTitle: { color: colors.text, fontSize: 30, fontWeight: '800' },
+  createButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  createButtonIcon: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '300',
+    lineHeight: 31,
+  },
+  filters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+  },
   tab: {
-    borderRadius: 16,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
-  activeTab: { backgroundColor: '#2457d6' },
-  tabText: { color: '#3d4756' },
-  activeTabText: { color: 'white', fontWeight: '600' },
-  list: { padding: 16, paddingTop: 0, gap: 12 },
-  card: { backgroundColor: 'white', borderRadius: 16, padding: 18, gap: 7 },
-  category: { color: '#2457d6', fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: '700' },
-  status: { color: '#5c6470' },
-  update: { color: '#b54708', fontWeight: '600' },
-  error: { color: '#b42318', paddingHorizontal: 20, paddingBottom: 10 },
-  empty: { textAlign: 'center', color: '#5c6470', marginTop: 60 },
+  activeTab: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: { color: colors.textMuted },
+  activeTabText: { color: '#fff', fontWeight: '700' },
+  list: { padding: 20, gap: 12 },
+  card: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    gap: 7,
+    padding: 18,
+  },
+  category: { color: colors.primary, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  status: { color: colors.textMuted },
+  update: { color: colors.primaryDark, fontWeight: '700' },
+  error: { color: colors.danger, paddingHorizontal: 20, paddingTop: 14 },
+  empty: { color: colors.textMuted, marginTop: 60, textAlign: 'center' },
 });

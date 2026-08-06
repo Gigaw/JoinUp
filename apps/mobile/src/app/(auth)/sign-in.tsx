@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  Button,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,6 +16,7 @@ import {
 } from '../../features/auth/login-schema';
 import { AppError } from '../../shared/api/error';
 import { useSession } from '../../shared/session/session-context';
+import { colors, radius } from '../../shared/theme/tokens';
 
 export default function SignInScreen() {
   const { login } = useSession();
@@ -50,10 +50,18 @@ export default function SignInScreen() {
       style={styles.container}
       testID="sign-in-screen"
     >
-      <Text style={styles.title}>С возвращением</Text>
-      <Text style={styles.subtitle}>Войдите, чтобы продолжить.</Text>
+      <View style={styles.brandRow}>
+        <View style={styles.brandMark}>
+          <Text style={styles.brandMarkText}>в</Text>
+        </View>
+        <Text style={styles.brand}>вместе</Text>
+      </View>
+      <View style={styles.heading}>
+        <Text style={styles.title}>С возвращением</Text>
+        <Text style={styles.subtitle}>Найдём, чем заняться сегодня?</Text>
+      </View>
       <View style={styles.field}>
-        <Text>Email</Text>
+        <Text style={styles.label}>Email</Text>
         <Controller
           control={control}
           name="email"
@@ -75,7 +83,7 @@ export default function SignInScreen() {
         ) : null}
       </View>
       <View style={styles.field}>
-        <Text>Пароль</Text>
+        <Text style={styles.label}>Пароль</Text>
         <Controller
           control={control}
           name="password"
@@ -99,12 +107,16 @@ export default function SignInScreen() {
       {errors.root?.message ? (
         <Text style={styles.error}>{errors.root.message}</Text>
       ) : null}
-      <Button
-        title={isSubmitting ? 'Входим…' : 'Войти'}
+      <Pressable
         disabled={isSubmitting}
         onPress={() => void submit()}
+        style={[styles.submit, isSubmitting && styles.submitDisabled]}
         testID="sign-in-submit"
-      />
+      >
+        <Text style={styles.submitText}>
+          {isSubmitting ? 'Входим…' : 'Войти'}
+        </Text>
+      </Pressable>
       <Link href="/register" asChild>
         <Pressable testID="sign-in-register-link">
           <Text style={styles.link}>Нет аккаунта? Зарегистрироваться</Text>
@@ -115,16 +127,66 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center', gap: 14 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { color: '#5c6470', marginBottom: 10 },
-  field: { gap: 6 },
-  input: {
-    borderColor: '#aeb5bf',
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 12,
+  container: {
+    backgroundColor: colors.background,
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
   },
-  error: { color: '#b42318' },
-  link: { color: '#2457d6', textAlign: 'center', padding: 8 },
+  brandRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 28,
+  },
+  brandMark: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 13,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  brandMarkText: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  brand: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  heading: { gap: 7, marginBottom: 10 },
+  title: {
+    color: colors.text,
+    fontSize: 31,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+  },
+  subtitle: { color: colors.textMuted, fontSize: 16 },
+  field: { gap: 7 },
+  label: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    color: colors.text,
+    padding: 14,
+  },
+  error: { color: colors.danger },
+  submit: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.small,
+    marginTop: 8,
+    padding: 16,
+  },
+  submitDisabled: { opacity: 0.65 },
+  submitText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  link: {
+    color: colors.primary,
+    fontWeight: '700',
+    textAlign: 'center',
+    padding: 8,
+  },
 });

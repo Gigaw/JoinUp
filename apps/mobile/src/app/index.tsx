@@ -11,5 +11,5 @@ export default function IndexScreen() {
   if (destination === 'error') return <NavigationError retry={retry} />;
   if (destination === 'sign-in') return <Redirect href="/sign-in" />;
   if (destination === 'onboarding') return <Redirect href="/onboarding" />;
-  return <Redirect href="/events" />;
+  return <Redirect href="/home" />;
 }
