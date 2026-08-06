@@ -13,6 +13,7 @@ export default function AppLayout() {
   if (destination === 'onboarding') return <Redirect href="/onboarding" />;
   return (
     <Stack screenOptions={{ headerBackTitle: 'Назад' }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="events/index" options={{ title: 'Активности' }} />
       <Stack.Screen
         name="activities/index"
