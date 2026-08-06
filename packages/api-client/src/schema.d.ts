@@ -68,6 +68,22 @@ export interface paths {
         patch: operations["updateMe"];
         trace?: never;
     };
+    "/v1/me/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyActivities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cities": {
         parameters: {
             query?: never;
@@ -298,6 +314,43 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        MyParticipationDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "pending" | "going" | "rejected" | "withdrawn" | "cancelled";
+            seenEventVersion: number;
+            hasEventUpdates: boolean;
+        };
+        ActivityItemDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            category: components["schemas"]["CategoryDto"];
+            city: components["schemas"]["CityDto"];
+            meetingPlace: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            imageUrl?: string | null;
+            /** @enum {string} */
+            participationMode: "automatic" | "approval_required";
+            participantsCount: number;
+            capacity: number;
+            isFull: boolean;
+            /** @enum {string} */
+            status: "published" | "cancelled";
+            contentVersion: number;
+            myParticipation?: components["schemas"]["MyParticipationDto"] | null;
+            hasEventUpdates: boolean;
+            availableActions: string[];
+            pendingApplicationsCount?: number | null;
+        };
+        ActivitiesListDto: {
+            items: components["schemas"]["ActivityItemDto"][];
+            nextCursor?: string | null;
+        };
         PatchMeDto: {
             displayName?: string;
             showAge?: boolean;
@@ -328,14 +381,6 @@ export interface components {
             displayName: string;
             avatarUrl?: string | null;
             age?: number;
-        };
-        MyParticipationDto: {
-            /** Format: uuid */
-            id: string;
-            /** @enum {string} */
-            status: "pending" | "going" | "rejected" | "withdrawn" | "cancelled";
-            seenEventVersion: number;
-            hasEventUpdates: boolean;
         };
         EventDetailsDto: {
             /** Format: uuid */
@@ -544,6 +589,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeDto"];
+                };
+            };
+        };
+    };
+    getMyActivities: {
+        parameters: {
+            query?: {
+                tab?: "upcoming" | "applications" | "created" | "past" | "cancelled";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitiesListDto"];
                 };
             };
         };

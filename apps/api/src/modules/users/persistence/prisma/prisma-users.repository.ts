@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { EventStatus, ParticipationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../platform/database/prisma.service';
 import type {
   ProfileRecord,
+  ActivityRecord,
+  ActivitiesTab,
   UsersRepository,
 } from '../../application/users.repository';
 import {
@@ -18,6 +20,12 @@ const profileInclude = Prisma.validator<Prisma.UserInclude>()({
 
 type PrismaProfile = Prisma.UserGetPayload<{ include: typeof profileInclude }>;
 
+const activityInclude = Prisma.validator<Prisma.EventInclude>()({
+  category: true,
+  city: true,
+  participations: true,
+});
+
 @Injectable()
 export class PrismaUsersRepository implements UsersRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -28,6 +36,77 @@ export class PrismaUsersRepository implements UsersRepository {
       include: profileInclude,
     });
     return user ? this.map(user) : null;
+  }
+
+  async findActivities(
+    userId: string,
+    tab: ActivitiesTab,
+    limit: number,
+  ): Promise<ActivityRecord[]> {
+    const now = new Date();
+    const relationship = { participations: { some: { userId } } };
+    const where: Prisma.EventWhereInput =
+      tab === 'upcoming'
+        ? {
+            status: EventStatus.published,
+            startsAt: { gt: now },
+            participations: {
+              some: { userId, status: ParticipationStatus.going },
+            },
+          }
+        : tab === 'applications'
+          ? {
+              participations: {
+                some: {
+                  userId,
+                  status: {
+                    in: [
+                      ParticipationStatus.pending,
+                      ParticipationStatus.going,
+                      ParticipationStatus.rejected,
+                      ParticipationStatus.withdrawn,
+                    ],
+                  },
+                },
+              },
+            }
+          : tab === 'created'
+            ? { organizerId: userId, status: { not: EventStatus.cancelled } }
+            : tab === 'past'
+              ? {
+                  status: { not: EventStatus.cancelled },
+                  startsAt: { lte: now },
+                  OR: [{ organizerId: userId }, relationship],
+                }
+              : {
+                  status: EventStatus.cancelled,
+                  OR: [{ organizerId: userId }, relationship],
+                };
+    const events = await this.prisma.event.findMany({
+      where,
+      include: activityInclude,
+      orderBy: [
+        { startsAt: tab === 'past' || tab === 'cancelled' ? 'desc' : 'asc' },
+        { id: 'asc' },
+      ],
+      take: limit,
+    });
+    return events.map((event) => ({
+      id: event.id,
+      organizerId: event.organizerId,
+      category: event.category,
+      city: event.city,
+      title: event.title,
+      meetingPlace: event.meetingPlace,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      imageObjectKey: event.imageObjectKey,
+      participationMode: event.participationMode,
+      capacity: event.capacity,
+      status: event.status,
+      contentVersion: event.contentVersion,
+      participations: event.participations,
+    }));
   }
 
   async updateProfile(
