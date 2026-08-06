@@ -100,6 +100,21 @@ export class EventListDto {
     string | null;
 }
 
+export class ActivityItemDto extends EventSummaryDto {
+  @ApiPropertyOptional({ type: MyParticipationDto, nullable: true })
+  myParticipation!: MyParticipationDto | null;
+  @ApiProperty() hasEventUpdates!: boolean;
+  @ApiProperty({ type: [String] }) availableActions!: string[];
+  @ApiPropertyOptional({ nullable: true, type: Number })
+  pendingApplicationsCount!: number | null;
+}
+
+export class ActivitiesListDto {
+  @ApiProperty({ type: [ActivityItemDto] }) items!: ActivityItemDto[];
+  @ApiPropertyOptional({ nullable: true, type: String }) nextCursor!:
+    string | null;
+}
+
 export class JoinEventDto {
   @ApiProperty({ type: MyParticipationDto }) participation!: MyParticipationDto;
   @ApiProperty() participantsCount!: number;

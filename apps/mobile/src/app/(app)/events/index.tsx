@@ -39,6 +39,11 @@ export default function EventsScreen() {
           <Text style={styles.createText}>Создать активность</Text>
         </Pressable>
       </Link>
+      <Link href="/activities" asChild>
+        <Pressable style={styles.myActivities} testID="my-activities-link">
+          <Text style={styles.myActivitiesText}>Мои активности</Text>
+        </Pressable>
+      </Link>
       {me.error || query.error ? (
         <Text style={styles.error}>{(me.error ?? query.error)?.message}</Text>
       ) : null}
@@ -105,6 +110,8 @@ const styles = StyleSheet.create({
     padding: 13,
   },
   createText: { color: 'white', fontWeight: '600' },
+  myActivities: { alignItems: 'center', marginTop: 12, padding: 10 },
+  myActivitiesText: { color: '#2457d6', fontWeight: '600' },
   list: { padding: 16, gap: 12 },
   card: { backgroundColor: 'white', borderRadius: 16, padding: 18, gap: 7 },
   category: { color: '#2457d6', fontWeight: '600' },

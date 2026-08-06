@@ -1,10 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { MeDto } from '../../../platform/http/api.dto';
+import {
+  EventStatus,
+  ParticipationMode,
+  ParticipationStatus,
+} from '@prisma/client';
+import type {
+  ActivitiesListDto,
+  ActivityItemDto,
+  MeDto,
+} from '../../../platform/http/api.dto';
 import { DomainError } from '../../../platform/http/domain.error';
 import { ProfileUpdateError, type ProfilePatch } from '../domain/profile';
 import {
   USERS_REPOSITORY,
   type ProfileRecord,
+  type ActivitiesTab,
+  type ActivityRecord,
   type UsersRepository,
 } from './users.repository';
 
@@ -51,6 +62,89 @@ export class UsersService {
       }
       throw this.notFound();
     }
+  }
+
+  async getActivities(
+    userId: string,
+    tab: ActivitiesTab,
+    limit: number,
+  ): Promise<ActivitiesListDto> {
+    const activities = await this.repository.findActivities(userId, tab, limit);
+    return {
+      items: activities.map((activity) =>
+        this.presentActivity(activity, userId),
+      ),
+      nextCursor: null,
+    };
+  }
+
+  private presentActivity(
+    activity: ActivityRecord,
+    userId: string,
+  ): ActivityItemDto {
+    const own = activity.participations.find((item) => item.userId === userId);
+    const participantsCount = activity.participations.filter(
+      (item) => item.status === ParticipationStatus.going,
+    ).length;
+    const hasEventUpdates = Boolean(
+      own && own.seenEventVersion < activity.contentVersion,
+    );
+    const availableActions: string[] = [];
+    if (
+      activity.status === EventStatus.published &&
+      activity.startsAt > new Date()
+    ) {
+      if (activity.organizerId === userId) {
+        availableActions.push('edit', 'cancel');
+        if (activity.participationMode === ParticipationMode.approval_required)
+          availableActions.push('reviewApplications');
+      } else if (own?.status === ParticipationStatus.going)
+        availableActions.push('leave');
+      else if (own?.status === ParticipationStatus.pending)
+        availableActions.push('withdraw');
+      else if (!own && participantsCount < activity.capacity) {
+        availableActions.push(
+          activity.participationMode === ParticipationMode.automatic
+            ? 'join'
+            : 'apply',
+        );
+      }
+    }
+    return {
+      id: activity.id,
+      title: activity.title,
+      category: activity.category,
+      city: activity.city,
+      meetingPlace: activity.meetingPlace,
+      startsAt: activity.startsAt.toISOString(),
+      endsAt: activity.endsAt?.toISOString() ?? null,
+      imageUrl: activity.imageObjectKey
+        ? `/v1/media/${activity.imageObjectKey}`
+        : null,
+      participationMode: activity.participationMode,
+      participantsCount,
+      capacity: activity.capacity,
+      isFull: participantsCount >= activity.capacity,
+      status: activity.status,
+      contentVersion: activity.contentVersion,
+      myParticipation: own
+        ? {
+            id: own.id,
+            status: own.status,
+            seenEventVersion: own.seenEventVersion,
+            hasEventUpdates,
+          }
+        : null,
+      hasEventUpdates,
+      availableActions,
+      pendingApplicationsCount:
+        activity.organizerId === userId &&
+        activity.participationMode === ParticipationMode.approval_required
+          ? activity.participations.filter(
+              (item) => item.status === ParticipationStatus.pending,
+            ).length
+          : null,
+    };
   }
 
   private present(profile: ProfileRecord): MeDto {

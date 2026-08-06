@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -12,7 +13,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { MeDto } from '../../../../platform/http/api.dto';
+import { ActivitiesListDto, MeDto } from '../../../../platform/http/api.dto';
 import {
   CurrentActor,
   type ActorContext,
@@ -20,6 +21,7 @@ import {
 import { SessionGuard } from '../../../auth/transport/http/session.guard';
 import { UsersService } from '../../application/users.service';
 import { PatchMeDto } from './profile.dto';
+import { ActivitiesQueryDto } from './activities-query.dto';
 
 @ApiTags('profile')
 @ApiBearerAuth()
@@ -33,6 +35,16 @@ export class UsersController {
   @ApiOkResponse({ type: MeDto })
   getMe(@CurrentActor() actor: ActorContext): Promise<MeDto> {
     return this.users.getMe(actor.userId);
+  }
+
+  @Get('activities')
+  @ApiOperation({ operationId: 'getMyActivities' })
+  @ApiOkResponse({ type: ActivitiesListDto })
+  getActivities(
+    @CurrentActor() actor: ActorContext,
+    @Query() query: ActivitiesQueryDto,
+  ): Promise<ActivitiesListDto> {
+    return this.users.getActivities(actor.userId, query.tab, query.limit);
   }
 
   @Patch()

@@ -147,6 +147,61 @@
         ]
       }
     },
+    "/v1/me/activities": {
+      "get": {
+        "operationId": "getMyActivities",
+        "parameters": [
+          {
+            "name": "tab",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "upcoming",
+              "type": "string",
+              "enum": [
+                "upcoming",
+                "applications",
+                "created",
+                "past",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivitiesListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
     "/v1/cities": {
       "get": {
         "operationId": "listCities",
@@ -859,6 +914,153 @@
           "updatedAt"
         ]
       },
+      "MyParticipationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "going",
+              "rejected",
+              "withdrawn",
+              "cancelled"
+            ]
+          },
+          "seenEventVersion": {
+            "type": "number"
+          },
+          "hasEventUpdates": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "seenEventVersion",
+          "hasEventUpdates"
+        ]
+      },
+      "ActivityItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryDto"
+          },
+          "city": {
+            "$ref": "#/components/schemas/CityDto"
+          },
+          "meetingPlace": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published",
+              "cancelled"
+            ]
+          },
+          "contentVersion": {
+            "type": "number"
+          },
+          "myParticipation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyParticipationDto"
+              }
+            ]
+          },
+          "hasEventUpdates": {
+            "type": "boolean"
+          },
+          "availableActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pendingApplicationsCount": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "meetingPlace",
+          "startsAt",
+          "participationMode",
+          "participantsCount",
+          "capacity",
+          "isFull",
+          "status",
+          "contentVersion",
+          "hasEventUpdates",
+          "availableActions"
+        ]
+      },
+      "ActivitiesListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "PatchMeDto": {
         "type": "object",
         "properties": {
@@ -969,37 +1171,6 @@
         "required": [
           "id",
           "displayName"
-        ]
-      },
-      "MyParticipationDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "going",
-              "rejected",
-              "withdrawn",
-              "cancelled"
-            ]
-          },
-          "seenEventVersion": {
-            "type": "number"
-          },
-          "hasEventUpdates": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "status",
-          "seenEventVersion",
-          "hasEventUpdates"
         ]
       },
       "EventDetailsDto": {
