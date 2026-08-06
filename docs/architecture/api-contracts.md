@@ -312,6 +312,29 @@ Backend под row lock запрещает capacity ниже текущего `g
 Возвращает cursor page `going` participants. Доступен любому авторизованному пользователю, который
 может открыть event. Organizer всегда присутствует.
 
+### `GET /v1/events/{eventId}/messages`
+
+Возвращает сообщения общего чата активности в обратном хронологическом порядке. Query `cursor`
+указывает последнее полученное message id, `limit` имеет default 30 и maximum 50. Response содержит
+`items`, `nextCursor` и `readOnly`. Доступ получают только organizer и участник с актуальным
+`participation.status = going`; для остальных endpoint намеренно возвращает `404`, не раскрывая
+содержимое чата. После отмены или наступления `startsAt` response остаётся доступен до retention,
+но `readOnly = true`.
+
+### `POST /v1/events/{eventId}/messages`
+
+Создаёт одно организационное сообщение и требует `Idempotency-Key`.
+
+```json
+{ "text": "Буду у входа в парк к 18:50" }
+```
+
+`text` normalizes trim и должен содержать от 1 до 1000 символов. Запись выполняется под row lock
+event с повторной проверкой актуального `going` участия: пользователь, потерявший доступ параллельно
+с запросом, не создаст сообщение. Для отменённой, начавшейся или завершённой активности endpoint
+возвращает `409 CHAT_READ_ONLY`. Ответ `201` — message с id, author projection, text и `createdAt`.
+Текст не попадает в технические логи.
+
 ### `GET /v1/events/{eventId}/applications`
 
 Доступен только организатору approval-required event. Query поддерживает status и cursor; первый
@@ -414,13 +437,24 @@ Query:
 действия. Pending application count означает количество необработанных `pending`, а не отдельный
 unread notification state.
 
-## 10. Идемпотентность
+## 10. Чаты
+
+### `GET /v1/me/chats`
+
+Возвращает доступные пользователю event-scoped чаты: только события с собственной актуальной
+participation `going`, не вышедшие за 30-дневный retention. Элемент содержит `eventId`, title,
+`startsAt`, event status, `lastMessageAt` без текста и `readOnly`. Mobile использует polling каждые
+15 секунд в detail и 30 секунд в списке, а также явный pull-to-refresh; realtime transport не
+нужен на первом этапе.
+
+## 11. Идемпотентность
 
 `Idempotency-Key` обязателен для:
 
 - `POST /events`;
 - `PATCH /events/{eventId}`;
 - `POST /events/{eventId}/cancel`;
+- `POST /events/{eventId}/messages`;
 - `PUT /me/avatar`;
 - `PUT /events/{eventId}/image`.
 

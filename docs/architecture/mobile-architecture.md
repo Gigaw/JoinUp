@@ -222,6 +222,7 @@ Backoff имеет верхнюю границу, а UI всегда даёт я
 | Join/apply | event detail, event list capacity, upcoming/applications |
 | Withdraw/leave | event detail, lists, corresponding activities |
 | Approve/reject | event detail, applications, created activities, applicant activities |
+| Send event message | messages этого event, список чатов |
 | Avatar/event image | affected profile/event detail and visible cards |
 
 Mutation response сначала записывается в точный detail/query cache, затем связанные aggregates
@@ -264,6 +265,11 @@ registration автоматически не повторяются после �
 
 Participation `PUT`/`DELETE` state-idempotent, но mobile всё равно выполняет refetch detail и
 activities после ответа. Terminal statuses не реактивируются.
+
+Для чата активности mobile использует TanStack Query infinite query с cursor pagination. Detail
+polls сообщения каждые 15 секунд, список чатов — каждые 30 секунд; на обоих экранах доступен ручной
+refresh. Создание сообщения сохраняет idempotency key и нормализованный текст в
+`PendingMutationStore` до окончательного ответа, чтобы network retry не создал дубликат.
 
 ## 11. Формы и validation
 

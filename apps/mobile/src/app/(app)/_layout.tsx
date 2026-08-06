@@ -25,6 +25,7 @@ export default function AppLayout() {
         options={{ title: 'Новая активность' }}
       />
       <Stack.Screen name="events/edit" options={{ title: 'Редактирование' }} />
+      <Stack.Screen name="chats/[eventId]" options={{ title: 'Чат' }} />
     </Stack>
   );
 }

@@ -71,6 +71,16 @@ export default function EventDetailsScreen() {
           {participationLabel(event.myParticipation.status)}
         </Text>
       ) : null}
+      {event.myParticipation?.status === 'going' ? (
+        <Link
+          href={{ pathname: '/chats/[eventId]', params: { eventId } }}
+          asChild
+        >
+          <Pressable style={styles.secondaryButton} testID="event-chat">
+            <Text style={styles.secondaryButtonText}>Открыть чат</Text>
+          </Pressable>
+        </Link>
+      ) : null}
       {join.error ? (
         <Text style={styles.error}>{join.error.message}</Text>
       ) : null}

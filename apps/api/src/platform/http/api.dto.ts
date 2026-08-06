@@ -136,3 +136,41 @@ export class EventApplicationDto {
 export class EventApplicationListDto {
   @ApiProperty({ type: [EventApplicationDto] }) items!: EventApplicationDto[];
 }
+
+export class EventMessageAuthorDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() displayName!: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) avatarUrl!:
+    string | null;
+}
+
+export class EventMessageDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ type: EventMessageAuthorDto }) author!: EventMessageAuthorDto;
+  @ApiProperty({ maxLength: 1000 }) text!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+
+export class EventMessageListDto {
+  @ApiProperty({ type: [EventMessageDto] }) items!: EventMessageDto[];
+  @ApiPropertyOptional({ nullable: true, type: String }) nextCursor!:
+    string | null;
+  @ApiProperty({ default: false }) readOnly!: boolean;
+}
+
+export class ChatSummaryDto {
+  @ApiProperty({ format: 'uuid' }) eventId!: string;
+  @ApiProperty() title!: string;
+  @ApiProperty({ format: 'date-time' }) startsAt!: string;
+  @ApiProperty({ enum: ['published', 'cancelled', 'completed'] })
+  eventStatus!: string;
+  @ApiPropertyOptional({ format: 'date-time', nullable: true, type: String })
+  lastMessageAt!: string | null;
+  @ApiProperty({ default: false }) readOnly!: boolean;
+}
+
+export class ChatListDto {
+  @ApiProperty({ type: [ChatSummaryDto] }) items!: ChatSummaryDto[];
+  @ApiPropertyOptional({ nullable: true, type: String }) nextCursor!:
+    string | null;
+}
