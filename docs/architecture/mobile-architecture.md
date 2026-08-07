@@ -1,7 +1,7 @@
 # Архитектура Expo mobile application
 
 - **Статус:** Draft
-- **Дата:** 2026-08-04
+- **Дата:** 2026-08-07
 - **Связанная задача:** [#10](https://github.com/Gigaw/JoinUp/issues/10)
 
 ## 1. Назначение
@@ -40,6 +40,7 @@ apps/mobile/
       (onboarding)/
       (tabs)/
       events/
+      chats/
       manage/
     features/
       auth/
@@ -48,6 +49,7 @@ apps/mobile/
       events/
       participation/
       activities/
+      chats/
       profile/
       media/
     shared/
@@ -87,31 +89,39 @@ Feature может импортировать `shared` и публичные exp
 
 ## 4. Навигация
 
-Для первого каркаса выбирается разрешённый PRD упрощённый вариант с тремя tabs: поиск и filters
-находятся на главном экране. Создание активности открывается по кнопке в заголовке раздела «Мои
-активности», а не занимает отдельный tab.
+В текущем mobile MVP авторизованный пользователь видит четыре постоянные нижние вкладки:
+«Главная», «Мои», «Чаты» и «Профиль». Поиск и filters относятся к содержимому «Главной».
+Создание активности открывается действием внутри «Мои», а не занимает отдельный tab.
+
+«Чаты» — отдельный список event-scoped чатов; доступ к конкретному чату остаётся вложенным
+сценарием поверх tabs. Вкладки доступны только в authenticated состоянии.
 
 ```text
 src/app/
   _layout.tsx
+  index.tsx
   (auth)/
     sign-in.tsx
     register.tsx
   (onboarding)/
-    profile.tsx
-    interests.tsx
-    (tabs)/
+    onboarding.tsx
+  (app)/
     _layout.tsx
-    index.tsx          # Главная + поиск + фильтры
-    activities.tsx
-    profile.tsx
-  events/
-    [eventId].tsx
-  manage/events/
-    [eventId].tsx
-    [eventId]/applications.tsx
-  users/
-    [userId].tsx
+    (tabs)/
+      _layout.tsx
+      home.tsx         # Главная
+      activities.tsx   # Мои
+      chats.tsx        # Чаты
+      profile.tsx      # Профиль
+    activities/index.tsx
+    chats/[eventId].tsx
+    events/
+      index.tsx
+      [eventId].tsx
+      create.tsx
+      edit.tsx
+    profile/edit.tsx
+    settings.tsx
 ```
 
 `_layout.tsx` подключает providers и принимает решение по четырём session состояниям:
@@ -377,7 +387,7 @@ React Native Testing Library проверяет поведение, доступ
 С mock API и in-memory storage проверяются:
 
 - restore session без flash auth screen;
-- anonymous → register/login → onboarding → tabs;
+- anonymous → register/login → onboarding → four tabs;
 - `401` → очистка приватного cache → sign-in;
 - deep link event после authentication;
 - create/join/apply/withdraw/approve flows и query invalidation.
