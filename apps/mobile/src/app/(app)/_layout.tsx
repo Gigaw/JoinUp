@@ -14,6 +14,11 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerBackTitle: 'Назад' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="profile/edit"
+        options={{ title: 'Редактировать профиль' }}
+      />
+      <Stack.Screen name="settings" options={{ title: 'Настройки' }} />
       <Stack.Screen name="events/index" options={{ title: 'Активности' }} />
       <Stack.Screen
         name="activities/index"

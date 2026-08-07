@@ -1,18 +1,19 @@
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
+  Button,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { calculateAge, formatAge } from '../../../features/profile/age';
 import { useMe } from '../../../shared/profile/use-me';
-import { useSession } from '../../../shared/session/session-context';
 import { colors, radius } from '../../../shared/theme/tokens';
 
 export default function ProfileScreen() {
   const me = useMe();
-  const { logout } = useSession();
   if (me.isLoading) return <ActivityIndicator style={styles.center} />;
   if (!me.data)
     return (
@@ -20,8 +21,10 @@ export default function ProfileScreen() {
         <Text style={styles.error}>
           {me.error?.message ?? 'Не удалось загрузить профиль.'}
         </Text>
+        <Button title="Повторить" onPress={() => void me.refetch()} />
       </View>
     );
+
   const initial = (me.data.displayName?.trim() || me.data.email)
     .slice(0, 1)
     .toUpperCase();
@@ -43,8 +46,22 @@ export default function ProfileScreen() {
           <Text style={styles.city}>
             {me.data.city?.name ?? 'Город не указан'}
           </Text>
+          {me.data.showAge ? (
+            <Text style={styles.age}>
+              {formatAge(calculateAge(me.data.birthDate))}
+            </Text>
+          ) : null}
         </View>
       </View>
+      {me.data.bio ? <Text style={styles.bio}>{me.data.bio}</Text> : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/profile/edit')}
+        style={styles.primaryAction}
+        testID="profile-edit"
+      >
+        <Text style={styles.primaryActionText}>Редактировать профиль</Text>
+      </Pressable>
       <Text style={styles.label}>ИНТЕРЕСЫ</Text>
       <View style={styles.interests}>
         {me.data.interests.length ? (
@@ -58,17 +75,15 @@ export default function ProfileScreen() {
         )}
       </View>
       <View style={styles.settingsCard}>
-        <Text style={styles.infoTitle}>Настройки аккаунта</Text>
+        <Text style={styles.infoTitle}>Аккаунт</Text>
         <Text style={styles.email}>{me.data.email}</Text>
-        <Text style={styles.muted}>
-          Возраст {me.data.showAge ? 'виден другим пользователям' : 'скрыт'}
-        </Text>
         <Pressable
-          style={styles.logout}
-          onPress={() => void logout()}
-          testID="profile-logout"
+          accessibilityRole="button"
+          onPress={() => router.push('/settings')}
+          style={styles.settingsAction}
+          testID="profile-settings"
         >
-          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+          <Text style={styles.settingsActionText}>Настройки</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -83,7 +98,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 38,
   },
-  center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  center: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center' },
   title: {
     color: colors.text,
     fontSize: 32,
@@ -112,6 +127,15 @@ const styles = StyleSheet.create({
   profileCopy: { gap: 4 },
   name: { color: colors.text, fontSize: 20, fontWeight: '800' },
   city: { color: colors.textMuted },
+  age: { color: colors.textMuted },
+  bio: { color: colors.textMuted, lineHeight: 21 },
+  primaryAction: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.medium,
+    padding: 15,
+  },
+  primaryActionText: { color: colors.surface, fontWeight: '700' },
   label: {
     color: colors.textMuted,
     fontSize: 12,
@@ -137,13 +161,13 @@ const styles = StyleSheet.create({
   infoTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   email: { color: colors.text, fontSize: 15 },
   muted: { color: colors.textMuted, lineHeight: 20 },
-  logout: {
-    alignItems: 'center',
+  settingsAction: {
+    alignItems: 'flex-start',
     borderTopColor: colors.border,
     borderTopWidth: 1,
     marginTop: 6,
     paddingTop: 15,
   },
-  logoutText: { color: colors.danger, fontWeight: '700' },
+  settingsActionText: { color: colors.primary, fontWeight: '700' },
   error: { color: colors.danger, textAlign: 'center' },
 });
