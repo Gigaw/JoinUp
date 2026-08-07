@@ -18,6 +18,10 @@ import {
   onboardingSchema,
   type OnboardingValues,
 } from '../../features/profile/onboarding-schema';
+import {
+  profileRequestBody,
+  profileValuesFromMe,
+} from '../../features/profile/profile-schema';
 import { AppError, responseError, toAppError } from '../../shared/api/error';
 import { useApiClient } from '../../shared/api/use-api-client';
 import { type Me, useMe } from '../../shared/profile/use-me';
@@ -54,17 +58,22 @@ export default function OnboardingScreen() {
     formState: { errors, isSubmitting },
   } = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: {
-      displayName: me.data?.displayName ?? '',
-      cityId: me.data?.city?.id ?? '',
-      categoryIds: me.data?.interests.map((interest) => interest.id) ?? [],
-      showAge: me.data?.showAge ?? false,
-    },
+    defaultValues: me.data
+      ? profileValuesFromMe(me.data)
+      : {
+          displayName: '',
+          bio: '',
+          cityId: '',
+          categoryIds: [],
+          showAge: false,
+        },
   });
 
   const submit = handleSubmit(async (values) => {
     try {
-      const result = await client.PATCH('/v1/me', { body: values });
+      const result = await client.PATCH('/v1/me', {
+        body: profileRequestBody(values),
+      });
       if (!result.data) throw toAppError(responseError(result));
       queryClient.setQueryData<Me>(['me'], result.data);
       router.replace('/home');
@@ -117,6 +126,28 @@ export default function OnboardingScreen() {
           )}
         />
         <FieldError message={errors.displayName?.message} />
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Краткое описание</Text>
+        <Controller
+          control={control}
+          name="bio"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              autoCapitalize="sentences"
+              maxLength={500}
+              multiline
+              onBlur={onBlur}
+              onChangeText={onChange}
+              placeholder="Например, люблю настольные игры и прогулки"
+              style={[styles.input, styles.bioInput]}
+              testID="onboarding-bio-input"
+              value={value}
+            />
+          )}
+        />
+        <FieldError message={errors.bio?.message} />
       </View>
 
       {catalogsLoading ? (
@@ -266,6 +297,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
   },
+  bioInput: { minHeight: 88, textAlignVertical: 'top' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     backgroundColor: 'white',
