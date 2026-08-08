@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import {
   ActivityIndicator,
@@ -115,19 +116,29 @@ function HomeHeader({
             style={styles.cityInfo}
             testID="home-city-disabled"
           >
-            <LocationIcon />
+            <Ionicons
+              accessible={false}
+              color={colors.primary}
+              name="location-outline"
+              size={20}
+            />
             <Text style={styles.city}>{cityName}</Text>
-            <ChevronDownIcon />
+            <Ionicons
+              accessible={false}
+              color={colors.textMuted}
+              name="chevron-down"
+              size={16}
+            />
           </Pressable>
           <View style={styles.headerActions}>
             <HeaderIconButton
               accessibilityLabel="Поиск активностей. Недоступно"
-              icon="search"
+              icon="search-outline"
               testID="home-search-disabled"
             />
             <HeaderIconButton
               accessibilityLabel="Фильтры активностей. Недоступно"
-              icon="filters"
+              icon="options-outline"
               testID="home-filters-disabled"
             />
           </View>
@@ -150,7 +161,7 @@ function HeaderIconButton({
   testID,
 }: {
   accessibilityLabel: string;
-  icon: 'filters' | 'search';
+  icon: 'options-outline' | 'search-outline';
   testID: string;
 }) {
   return (
@@ -162,51 +173,8 @@ function HeaderIconButton({
       style={styles.headerAction}
       testID={testID}
     >
-      <HeaderIcon name={icon} />
+      <Ionicons accessible={false} color={colors.text} name={icon} size={21} />
     </Pressable>
-  );
-}
-
-function HeaderIcon({ name }: { name: 'filters' | 'search' }) {
-  if (name === 'search') {
-    return (
-      <View accessible={false} style={styles.searchGlyph}>
-        <View style={styles.searchCircle} />
-        <View style={styles.searchHandle} />
-      </View>
-    );
-  }
-
-  return (
-    <View accessible={false} style={styles.filterGlyph}>
-      <View style={[styles.filterLine, styles.filterLineTop]}>
-        <View style={[styles.filterKnob, styles.filterKnobTop]} />
-      </View>
-      <View style={[styles.filterLine, styles.filterLineMiddle]}>
-        <View style={[styles.filterKnob, styles.filterKnobMiddle]} />
-      </View>
-      <View style={[styles.filterLine, styles.filterLineBottom]}>
-        <View style={[styles.filterKnob, styles.filterKnobBottom]} />
-      </View>
-    </View>
-  );
-}
-
-function LocationIcon() {
-  return (
-    <View accessible={false} style={styles.locationGlyph}>
-      <View style={styles.locationPin} />
-      <View style={styles.locationDot} />
-    </View>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <View accessible={false} style={styles.chevronDown}>
-      <View style={[styles.chevronPart, styles.chevronPartLeft]} />
-      <View style={[styles.chevronPart, styles.chevronPartRight]} />
-    </View>
   );
 }
 
@@ -296,47 +264,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     gap: spacing.sm,
   },
-  locationGlyph: {
-    alignItems: 'center',
-    height: 22,
-    justifyContent: 'flex-start',
-    position: 'relative',
-    width: 20,
-  },
-  locationPin: {
-    borderColor: colors.primary,
-    borderBottomRightRadius: 2,
-    borderRadius: 9,
-    borderWidth: 2,
-    height: 16,
-    marginTop: 1,
-    transform: [{ rotate: '45deg' }],
-    width: 16,
-  },
-  locationDot: {
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-    height: 5,
-    position: 'absolute',
-    top: 7,
-    width: 5,
-  },
-  chevronDown: {
-    height: 16,
-    marginLeft: spacing.xs,
-    position: 'relative',
-    width: 16,
-  },
-  chevronPart: {
-    backgroundColor: colors.textMuted,
-    borderRadius: 1,
-    height: 2,
-    position: 'absolute',
-    top: 7,
-    width: 7,
-  },
-  chevronPartLeft: { left: 1, transform: [{ rotate: '45deg' }] },
-  chevronPartRight: { right: 1, transform: [{ rotate: '-45deg' }] },
   city: {
     color: colors.text,
     fontSize: 17,
@@ -354,52 +281,6 @@ const styles = StyleSheet.create({
     opacity: 0.65,
     width: touchTarget,
   },
-  searchGlyph: { height: 20, position: 'relative', width: 20 },
-  searchCircle: {
-    borderColor: colors.text,
-    borderRadius: 8,
-    borderWidth: 2,
-    height: 14,
-    left: 1,
-    position: 'absolute',
-    top: 1,
-    width: 14,
-  },
-  searchHandle: {
-    backgroundColor: colors.text,
-    borderRadius: 1,
-    bottom: 2,
-    height: 2,
-    position: 'absolute',
-    right: 1,
-    transform: [{ rotate: '45deg' }],
-    width: 8,
-  },
-  filterGlyph: { height: 20, position: 'relative', width: 20 },
-  filterLine: {
-    backgroundColor: colors.text,
-    borderRadius: 1,
-    height: 2,
-    left: 1,
-    position: 'absolute',
-    right: 1,
-  },
-  filterLineTop: { top: 3 },
-  filterLineMiddle: { top: 9 },
-  filterLineBottom: { top: 15 },
-  filterKnob: {
-    backgroundColor: colors.text,
-    borderColor: colors.background,
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 7,
-    position: 'absolute',
-    top: -2,
-    width: 7,
-  },
-  filterKnobTop: { left: 4 },
-  filterKnobMiddle: { left: 10 },
-  filterKnobBottom: { left: 6 },
   title: { color: colors.text, marginTop: spacing.md, ...typography.pageTitle },
   subtitle: {
     color: colors.textMuted,

@@ -1,12 +1,15 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { colors } from '../../../shared/theme/tokens';
 
-const icons: Record<string, string> = {
-  home: '⌂',
-  activities: '◷',
-  chats: '◌',
-  profile: '◉',
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+const icons: Record<string, { active: IoniconName; inactive: IoniconName }> = {
+  home: { active: 'home', inactive: 'home-outline' },
+  activities: { active: 'calendar', inactive: 'calendar-outline' },
+  chats: { active: 'chatbubbles', inactive: 'chatbubbles-outline' },
+  profile: { active: 'person', inactive: 'person-outline' },
 };
 
 export default function TabsLayout() {
@@ -23,17 +26,18 @@ export default function TabsLayout() {
           paddingTop: 7,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ color, focused }) => (
-          <Text
-            style={{
-              color,
-              fontSize: 22,
-              fontWeight: focused ? '700' : '400',
-            }}
-          >
-            {icons[route.name]}
-          </Text>
-        ),
+        tabBarIcon: ({ color, focused }) => {
+          const icon = icons[route.name];
+
+          return (
+            <Ionicons
+              accessible={false}
+              color={color}
+              name={icon[focused ? 'active' : 'inactive']}
+              size={24}
+            />
+          );
+        },
       })}
     >
       <Tabs.Screen name="home" options={{ title: 'Главная' }} />

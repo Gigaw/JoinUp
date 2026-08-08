@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import {
@@ -81,20 +82,14 @@ export function EventCard({
         <Text style={styles.title}>{event.title}</Text>
         <View style={styles.metaRow}>
           <View style={styles.metaPill}>
-            <Text style={styles.metaIcon}>◷</Text>
+            <Ionicons
+              accessible={false}
+              color={colors.textMuted}
+              name="calendar-outline"
+              size={16}
+            />
             <Text style={styles.metaText}>
               {formatEventDate(event.startsAt, event.city.timeZone)}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.metaRow}>
-          <View style={[styles.metaPill, styles.locationPill]}>
-            <Text style={styles.metaIcon}>⌖</Text>
-            <Text
-              numberOfLines={2}
-              style={[styles.metaText, styles.locationText]}
-            >
-              {event.meetingPlace}
             </Text>
           </View>
           <View
@@ -104,11 +99,30 @@ export function EventCard({
               event.isFull && styles.fullPill,
             ]}
           >
-            <ParticipantsIcon
+            <Ionicons
+              accessible={false}
               color={event.isFull ? colors.danger : colors.textMuted}
+              name="people-outline"
+              size={17}
             />
             <Text style={[styles.metaText, event.isFull && styles.fullText]}>
               {event.participantsCount}/{event.capacity}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.metaRow}>
+          <View style={[styles.metaPill, styles.locationPill]}>
+            <Ionicons
+              accessible={false}
+              color={colors.textMuted}
+              name="location-outline"
+              size={17}
+            />
+            <Text
+              numberOfLines={2}
+              style={[styles.metaText, styles.locationText]}
+            >
+              {event.meetingPlace}
             </Text>
           </View>
         </View>
@@ -125,29 +139,6 @@ function getFallbackImage(categorySlug: string): number {
 function resolveImageUrl(imageUrl: string): string {
   if (/^https?:\/\//.test(imageUrl)) return imageUrl;
   return `${getApiBaseUrl()}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
-}
-
-function ParticipantsIcon({ color }: { color: string }) {
-  return (
-    <View accessible={false} style={styles.participantsIcon}>
-      <View
-        style={[
-          styles.personHead,
-          styles.backPersonHead,
-          { borderColor: color },
-        ]}
-      />
-      <View
-        style={[
-          styles.personBody,
-          styles.backPersonBody,
-          { borderColor: color },
-        ]}
-      />
-      <View style={[styles.personHead, { borderColor: color }]} />
-      <View style={[styles.personBody, { borderColor: color }]} />
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -194,30 +185,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     borderColor: colors.dangerSoft,
   },
-  metaIcon: { color: colors.textMuted, fontSize: 16, lineHeight: 18 },
   metaText: { color: colors.text, flexShrink: 0, fontSize: 13, lineHeight: 18 },
   locationText: { flex: 1, minWidth: 0 },
   fullText: { color: colors.danger },
-  participantsIcon: { height: 18, position: 'relative', width: 20 },
-  personHead: {
-    borderRadius: 4,
-    borderWidth: 1.5,
-    height: 7,
-    left: 2,
-    position: 'absolute',
-    top: 0,
-    width: 7,
-  },
-  personBody: {
-    borderRadius: 7,
-    borderWidth: 1.5,
-    bottom: 0,
-    height: 8,
-    left: 0,
-    position: 'absolute',
-    width: 12,
-  },
-  backPersonHead: { left: 11, top: 2 },
-  backPersonBody: { left: 8, width: 12 },
   extra: { gap: spacing.sm, marginTop: spacing.xs },
 });
