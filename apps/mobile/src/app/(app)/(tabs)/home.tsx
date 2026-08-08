@@ -106,49 +106,106 @@ function HomeHeader({
   return (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>ВМЕСТЕ В ГОРОДЕ</Text>
-        <Text style={styles.city}>{cityName}</Text>
-        <Text style={styles.title}>Планы на сегодня</Text>
+        <View style={styles.cityRow}>
+          <Pressable
+            accessibilityLabel={`Город: ${cityName}. Смена города недоступна`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            disabled
+            style={styles.cityInfo}
+            testID="home-city-disabled"
+          >
+            <LocationIcon />
+            <Text style={styles.city}>{cityName}</Text>
+            <ChevronDownIcon />
+          </Pressable>
+          <View style={styles.headerActions}>
+            <HeaderIconButton
+              accessibilityLabel="Поиск активностей. Недоступно"
+              icon="search"
+              testID="home-search-disabled"
+            />
+            <HeaderIconButton
+              accessibilityLabel="Фильтры активностей. Недоступно"
+              icon="filters"
+              testID="home-filters-disabled"
+            />
+          </View>
+        </View>
+        <Text style={styles.title}>Активности в городе</Text>
         <Text style={styles.subtitle}>
           Найдите занятие, к которому хочется присоединиться.
         </Text>
       </View>
-      <DiscoveryControls />
       {errorMessage ? (
         <InlineError message={errorMessage} onRetry={onRetry} />
       ) : null}
-      <Text style={styles.sectionTitle}>Ближайшие активности</Text>
     </View>
   );
 }
 
-function DiscoveryControls() {
+function HeaderIconButton({
+  accessibilityLabel,
+  icon,
+  testID,
+}: {
+  accessibilityLabel: string;
+  icon: 'filters' | 'search';
+  testID: string;
+}) {
   return (
-    <View style={styles.discoveryControls}>
-      <Pressable
-        accessibilityLabel="Поиск активностей. Недоступно"
-        accessibilityRole="button"
-        accessibilityState={{ disabled: true }}
-        disabled
-        style={styles.searchControl}
-        testID="home-search-disabled"
-      >
-        <Text style={styles.searchIcon}>⌕</Text>
-        <Text style={styles.controlText}>Поиск активностей</Text>
-      </Pressable>
-      <Pressable
-        accessibilityLabel="Фильтры. Недоступно"
-        accessibilityRole="button"
-        accessibilityState={{ disabled: true }}
-        disabled
-        style={styles.filterControl}
-        testID="home-filters-disabled"
-      >
-        <Text style={styles.filterText}>Фильтры</Text>
-      </Pressable>
-      <Text style={styles.controlsHint}>
-        Поиск и фильтры появятся в следующем обновлении.
-      </Text>
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: true }}
+      disabled
+      style={styles.headerAction}
+      testID={testID}
+    >
+      <HeaderIcon name={icon} />
+    </Pressable>
+  );
+}
+
+function HeaderIcon({ name }: { name: 'filters' | 'search' }) {
+  if (name === 'search') {
+    return (
+      <View accessible={false} style={styles.searchGlyph}>
+        <View style={styles.searchCircle} />
+        <View style={styles.searchHandle} />
+      </View>
+    );
+  }
+
+  return (
+    <View accessible={false} style={styles.filterGlyph}>
+      <View style={[styles.filterLine, styles.filterLineTop]}>
+        <View style={[styles.filterKnob, styles.filterKnobTop]} />
+      </View>
+      <View style={[styles.filterLine, styles.filterLineMiddle]}>
+        <View style={[styles.filterKnob, styles.filterKnobMiddle]} />
+      </View>
+      <View style={[styles.filterLine, styles.filterLineBottom]}>
+        <View style={[styles.filterKnob, styles.filterKnobBottom]} />
+      </View>
+    </View>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <View accessible={false} style={styles.locationGlyph}>
+      <View style={styles.locationPin} />
+      <View style={styles.locationDot} />
+    </View>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <View accessible={false} style={styles.chevronDown}>
+      <View style={[styles.chevronPart, styles.chevronPartLeft]} />
+      <View style={[styles.chevronPart, styles.chevronPartRight]} />
     </View>
   );
 }
@@ -222,64 +279,133 @@ const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1 },
   list: {
     gap: spacing.md,
-    padding: spacing.xl,
     paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
   headerContainer: { gap: spacing.md },
-  header: { paddingBottom: spacing.sm, paddingTop: spacing.sm },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.1,
+  header: { paddingBottom: spacing.xs, paddingTop: 0 },
+  cityRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
+  cityInfo: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    gap: spacing.sm,
+  },
+  locationGlyph: {
+    alignItems: 'center',
+    height: 22,
+    justifyContent: 'flex-start',
+    position: 'relative',
+    width: 20,
+  },
+  locationPin: {
+    borderColor: colors.primary,
+    borderBottomRightRadius: 2,
+    borderRadius: 9,
+    borderWidth: 2,
+    height: 16,
+    marginTop: 1,
+    transform: [{ rotate: '45deg' }],
+    width: 16,
+  },
+  locationDot: {
+    backgroundColor: colors.primary,
+    borderRadius: 3,
+    height: 5,
+    position: 'absolute',
+    top: 7,
+    width: 5,
+  },
+  chevronDown: {
+    height: 16,
+    marginLeft: spacing.xs,
+    position: 'relative',
+    width: 16,
+  },
+  chevronPart: {
+    backgroundColor: colors.textMuted,
+    borderRadius: 1,
+    height: 2,
+    position: 'absolute',
+    top: 7,
+    width: 7,
+  },
+  chevronPartLeft: { left: 1, transform: [{ rotate: '45deg' }] },
+  chevronPartRight: { right: 1, transform: [{ rotate: '-45deg' }] },
   city: {
     color: colors.text,
     fontSize: 17,
     fontWeight: '700',
-    marginTop: spacing.xs,
+    flexShrink: 1,
   },
-  title: { color: colors.text, marginTop: spacing.lg, ...typography.pageTitle },
+  headerActions: { flexDirection: 'row', gap: spacing.xs },
+  headerAction: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: touchTarget,
+    justifyContent: 'center',
+    opacity: 0.65,
+    width: touchTarget,
+  },
+  searchGlyph: { height: 20, position: 'relative', width: 20 },
+  searchCircle: {
+    borderColor: colors.text,
+    borderRadius: 8,
+    borderWidth: 2,
+    height: 14,
+    left: 1,
+    position: 'absolute',
+    top: 1,
+    width: 14,
+  },
+  searchHandle: {
+    backgroundColor: colors.text,
+    borderRadius: 1,
+    bottom: 2,
+    height: 2,
+    position: 'absolute',
+    right: 1,
+    transform: [{ rotate: '45deg' }],
+    width: 8,
+  },
+  filterGlyph: { height: 20, position: 'relative', width: 20 },
+  filterLine: {
+    backgroundColor: colors.text,
+    borderRadius: 1,
+    height: 2,
+    left: 1,
+    position: 'absolute',
+    right: 1,
+  },
+  filterLineTop: { top: 3 },
+  filterLineMiddle: { top: 9 },
+  filterLineBottom: { top: 15 },
+  filterKnob: {
+    backgroundColor: colors.text,
+    borderColor: colors.background,
+    borderRadius: 4,
+    borderWidth: 1,
+    height: 7,
+    position: 'absolute',
+    top: -2,
+    width: 7,
+  },
+  filterKnobTop: { left: 4 },
+  filterKnobMiddle: { left: 10 },
+  filterKnobBottom: { left: 6 },
+  title: { color: colors.text, marginTop: spacing.md, ...typography.pageTitle },
   subtitle: {
     color: colors.textMuted,
     fontSize: 16,
     lineHeight: 22,
     marginTop: spacing.sm,
-  },
-  discoveryControls: { gap: spacing.sm },
-  searchControl: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.medium,
-    borderWidth: 1,
-    flexDirection: 'row',
-    minHeight: touchTarget,
-    paddingHorizontal: spacing.md,
-  },
-  searchIcon: {
-    color: colors.textMuted,
-    fontSize: 22,
-    marginRight: spacing.sm,
-  },
-  controlText: { color: colors.textMuted, fontSize: 15 },
-  filterControl: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    minHeight: touchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  filterText: { color: colors.textMuted, fontSize: 14, fontWeight: '700' },
-  controlsHint: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
-  sectionTitle: {
-    color: colors.text,
-    marginTop: spacing.sm,
-    ...typography.sectionTitle,
   },
   inlineError: {
     alignItems: 'center',
