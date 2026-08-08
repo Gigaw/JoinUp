@@ -4,6 +4,8 @@ import type { ComponentProps } from 'react';
 import { colors } from '../../../shared/theme/tokens';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
+type TabScreenOptionsArgs = { route: { name: string } };
+type TabBarIconProps = { color: string; focused: boolean; size: number };
 
 const icons: Record<string, { active: IoniconName; inactive: IoniconName }> = {
   home: { active: 'home', inactive: 'home-outline' },
@@ -15,7 +17,7 @@ const icons: Record<string, { active: IoniconName; inactive: IoniconName }> = {
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
+      screenOptions={({ route }: TabScreenOptionsArgs) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
@@ -26,8 +28,9 @@ export default function TabsLayout() {
           paddingTop: 7,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ color, focused }) => {
-          const icon = icons[route.name];
+        tabBarIcon: ({ color, focused }: TabBarIconProps) => {
+          const routeName = route.name;
+          const icon = icons[routeName] ?? icons.home;
 
           return (
             <Ionicons

@@ -138,8 +138,8 @@ pnpm mobile:ios
 pnpm mobile:android
 ```
 
-Для iOS нужен Xcode 16.1 или новее и рабочий CocoaPods. Это минимальное требование текущей связки
-Expo SDK 54 и React Native 0.81.
+Для iOS нужен Xcode 26.4 или новее и рабочий CocoaPods. Это минимальное требование текущей связки
+Expo SDK 57 и React Native 0.86.
 
 Для Android Emulator можно указать в `apps/mobile/.env`
 `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` либо выполнить `adb reverse tcp:3000 tcp:3000` и оставить
@@ -198,7 +198,7 @@ pnpm build
 
 | Платформа | Статус                                                            |
 | --------- | ----------------------------------------------------------------- |
-| iOS       | Настроена через Expo SDK 54; локальная сборка требует Xcode 16.1+ |
+| iOS       | Настроена через Expo SDK 57; локальная сборка требует Xcode 26.4+ |
 | Android   | Development build проверен в Android Emulator API 34              |
 | Web       | Не входит в пользовательский MVP                                  |
 
