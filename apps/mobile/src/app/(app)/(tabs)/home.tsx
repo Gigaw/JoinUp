@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,6 +12,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCategories } from '../../../features/categories/use-categories';
 import { CityPickerSheet } from '../../../features/cities/ui/city-picker-sheet';
@@ -116,6 +124,7 @@ export default function HomeScreen() {
             cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
             errorMessage={inlineError?.message}
             inputQuery={inputQuery}
+            isCitySheetOpen={isCitySheetOpen}
             isRefreshing={query.isFetching}
             isSearchOpen={isSearchOpen}
             onCityPress={openCityPicker}
@@ -195,11 +204,14 @@ export default function HomeScreen() {
   );
 }
 
+const SEARCH_ROW_HEIGHT = touchTarget + spacing.md;
+
 function HomeHeader({
   cityName,
   errorMessage,
   filterCount,
   inputQuery,
+  isCitySheetOpen,
   isRefreshing,
   isSearchOpen,
   onFilterPress,
@@ -213,6 +225,7 @@ function HomeHeader({
   errorMessage?: string;
   filterCount: number;
   inputQuery: string;
+  isCitySheetOpen: boolean;
   isRefreshing: boolean;
   isSearchOpen: boolean;
   onFilterPress: () => void;
@@ -222,6 +235,52 @@ function HomeHeader({
   onSearchPress: () => void;
   onRetry: () => void;
 }) {
+  const [isSearchMounted, setSearchMounted] = useState(isSearchOpen);
+  const cityChevronProgress = useSharedValue(isCitySheetOpen ? 1 : 0);
+  const searchProgress = useSharedValue(isSearchOpen ? 1 : 0);
+
+  useEffect(() => {
+    cityChevronProgress.value = withTiming(isCitySheetOpen ? 1 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [cityChevronProgress, isCitySheetOpen]);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      setSearchMounted(true);
+      searchProgress.value = withTiming(1, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+      });
+      return;
+    }
+
+    searchProgress.value = withTiming(
+      0,
+      {
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+      },
+      (finished) => {
+        if (finished) scheduleOnRN(setSearchMounted, false);
+      },
+    );
+  }, [isSearchOpen, searchProgress]);
+
+  const cityChevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${cityChevronProgress.value * 180}deg` }],
+  }));
+  const searchAnimatedStyle = useAnimatedStyle(() => {
+    const progress = searchProgress.value;
+
+    return {
+      height: interpolate(progress, [0, 1], [0, SEARCH_ROW_HEIGHT]),
+      opacity: progress,
+      transform: [{ translateY: interpolate(progress, [0, 1], [-8, 0]) }],
+    };
+  });
+
   return (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
@@ -229,6 +288,7 @@ function HomeHeader({
           <Pressable
             accessibilityLabel={`Город: ${cityName}. Выбрать город`}
             accessibilityRole="button"
+            accessibilityState={{ expanded: isCitySheetOpen }}
             onPress={onCityPress}
             style={styles.cityInfo}
             testID="home-city-selector"
@@ -240,74 +300,90 @@ function HomeHeader({
               size={20}
             />
             <Text style={styles.city}>{cityName}</Text>
-            <Ionicons
-              accessible={false}
-              color={colors.textMuted}
-              name="chevron-down"
-              size={16}
-            />
+            <Animated.View style={cityChevronStyle}>
+              <Ionicons
+                accessible={false}
+                color={colors.textMuted}
+                name="chevron-down"
+                size={16}
+              />
+            </Animated.View>
           </Pressable>
           <View style={styles.headerActions}>
             <HeaderIconButton
               accessibilityLabel={
                 isSearchOpen ? 'Закрыть поиск активностей' : 'Поиск активностей'
               }
+              active={isSearchOpen}
+              activeTone="solid"
               icon={isSearchOpen ? 'close-outline' : 'search-outline'}
               onPress={onSearchPress}
+              iconColor={isSearchOpen ? colors.surface : colors.primaryDark}
               testID="home-search-button"
             />
             <HeaderIconButton
               accessibilityLabel="Открыть фильтры активностей"
+              active={filterCount > 0}
               icon="options-outline"
+              iconColor={colors.primaryDark}
               onPress={onFilterPress}
               badgeCount={filterCount}
               testID="home-filters-button"
             />
           </View>
         </View>
-        {isSearchOpen ? (
-          <View style={styles.searchRow}>
-            <Ionicons
-              accessible={false}
-              color={colors.textMuted}
-              name="search-outline"
-              size={20}
-            />
-            <TextInput
-              accessibilityLabel="Поиск активностей"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-              maxLength={100}
-              onChangeText={onSearchChange}
-              placeholder="Найти активность"
-              placeholderTextColor={colors.textMuted}
-              returnKeyType="search"
-              style={styles.searchInput}
-              testID="home-search-input"
-              value={inputQuery}
-            />
-            {isRefreshing ? (
-              <ActivityIndicator color={colors.primary} size="small" />
-            ) : null}
-            {inputQuery.length > 0 ? (
-              <Pressable
-                accessibilityLabel="Очистить поиск"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={onSearchClear}
-                style={styles.searchClear}
-                testID="home-search-clear"
-              >
-                <Ionicons
-                  accessible={false}
-                  color={colors.textMuted}
-                  name="close-circle"
-                  size={20}
-                />
-              </Pressable>
-            ) : null}
-          </View>
+        {isSearchMounted ? (
+          <Animated.View
+            accessibilityElementsHidden={!isSearchOpen}
+            importantForAccessibility={
+              isSearchOpen ? 'yes' : 'no-hide-descendants'
+            }
+            pointerEvents={isSearchOpen ? 'auto' : 'none'}
+            style={[styles.searchAnimatedContainer, searchAnimatedStyle]}
+          >
+            <View style={styles.searchRow}>
+              <Ionicons
+                accessible={false}
+                color={colors.primaryDark}
+                name="search-outline"
+                size={20}
+              />
+              <TextInput
+                accessibilityLabel="Поиск активностей"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={isSearchOpen}
+                maxLength={100}
+                onChangeText={onSearchChange}
+                placeholder="Найти активность"
+                placeholderTextColor={colors.textMuted}
+                returnKeyType="search"
+                style={styles.searchInput}
+                testID="home-search-input"
+                value={inputQuery}
+              />
+              {isRefreshing ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : null}
+              {inputQuery.length > 0 ? (
+                <Pressable
+                  accessibilityLabel="Очистить поиск"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onSearchClear}
+                  style={styles.searchClear}
+                  testID="home-search-clear"
+                >
+                  <Ionicons
+                    accessible={false}
+                    color={colors.textMuted}
+                    name="close-circle"
+                    size={20}
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+          </Animated.View>
         ) : null}
         <Text style={styles.title}>Активности в городе</Text>
         <Text style={styles.subtitle}>
@@ -323,16 +399,22 @@ function HomeHeader({
 
 function HeaderIconButton({
   accessibilityLabel,
+  active = false,
+  activeTone = 'soft',
   badgeCount = 0,
   disabled = false,
   icon,
+  iconColor = colors.primaryDark,
   onPress,
   testID,
 }: {
   accessibilityLabel: string;
+  active?: boolean;
+  activeTone?: 'soft' | 'solid';
   badgeCount?: number;
   disabled?: boolean;
   icon: 'close-outline' | 'options-outline' | 'search-outline';
+  iconColor?: string;
   onPress?: () => void;
   testID: string;
 }) {
@@ -345,12 +427,16 @@ function HeaderIconButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.headerAction,
+        active &&
+          (activeTone === 'solid'
+            ? styles.headerActionSolid
+            : styles.headerActionActive),
         disabled && styles.headerActionDisabled,
         pressed && !disabled && styles.headerActionPressed,
       ]}
       testID={testID}
     >
-      <Ionicons accessible={false} color={colors.text} name={icon} size={21} />
+      <Ionicons accessible={false} color={iconColor} name={icon} size={21} />
       {badgeCount > 0 ? (
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>{badgeCount}</Text>
@@ -495,15 +581,25 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: spacing.xs },
   headerAction: {
     alignItems: 'center',
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.primarySoft,
     borderRadius: radius.pill,
     borderWidth: 1,
     height: touchTarget,
     justifyContent: 'center',
     width: touchTarget,
   },
+  headerActionActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  headerActionSolid: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   headerActionDisabled: { opacity: 0.65 },
-  headerActionPressed: { backgroundColor: colors.surfaceMuted },
+  headerActionPressed: { opacity: 0.76 },
+  searchAnimatedContainer: { overflow: 'hidden' },
   searchRow: {
     alignItems: 'center',
     backgroundColor: colors.surface,
