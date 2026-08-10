@@ -1,23 +1,106 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { useDeferredValue, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCategories } from '../../../features/categories/use-categories';
+import { CityPickerSheet } from '../../../features/cities/ui/city-picker-sheet';
+import { useCities } from '../../../features/cities/use-cities';
+import { useEventCatalogState } from '../../../features/events/event-catalog-state';
+import { EventCard } from '../../../features/events/ui/event-card';
 import { useEventList } from '../../../features/events/event-queries';
+import { FilterBottomSheet } from '../../../features/events/ui/filter-bottom-sheet';
+import { normalizeSearchQuery } from '../../../features/events/search-utils';
+import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value';
 import { useMe } from '../../../shared/profile/use-me';
-import { colors, radius } from '../../../shared/theme/tokens';
+import {
+  colors,
+  radius,
+  spacing,
+  touchTarget,
+  typography,
+} from '../../../shared/theme/tokens';
 
 export default function HomeScreen() {
   const me = useMe();
-  const query = useEventList(me.data?.city?.id);
-  if (me.isLoading || query.isLoading)
-    return <ActivityIndicator style={styles.center} />;
+  const [isCitySheetOpen, setCitySheetOpen] = useState(false);
+  const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
+  const {
+    discoveryCityId,
+    inputQuery,
+    isSearchOpen,
+    selectedCategoryIds,
+    setDiscoveryCityId,
+    setInputQuery,
+    setSearchOpen,
+    setSelectedCategoryIds,
+  } = useEventCatalogState();
+  const profileCityId = me.data?.city?.id;
+  const cityId = discoveryCityId ?? profileCityId;
+  const cities = useCities();
+  const categories = useCategories();
+  const selectedCity = cities.data?.find((city) => city.id === cityId);
+  const deferredQuery = useDeferredValue(normalizeSearchQuery(inputQuery));
+  const searchQuery = useDebouncedValue(deferredQuery, 350);
+  const query = useEventList(cityId, selectedCategoryIds, searchQuery);
+  const isLoading =
+    me.isLoading || (Boolean(cityId) && query.isLoading && !query.data);
+  const blockingError =
+    (me.error && !me.data ? me.error : null) ??
+    (query.error && !query.data ? query.error : null);
+
+  if (isLoading) return <LoadingState />;
+  if (blockingError) {
+    return (
+      <ErrorState
+        message={blockingError.message}
+        onRetry={() => {
+          void me.refetch();
+          void query.refetch();
+        }}
+      />
+    );
+  }
+
+  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const inlineError = me.error ?? query.error;
+  const retryHome = () => {
+    void me.refetch();
+    void query.refetch();
+  };
+  const openCityPicker = () => {
+    Keyboard.dismiss();
+    setCitySheetOpen(true);
+  };
+  const openFilterSheet = () => {
+    Keyboard.dismiss();
+    setFilterSheetOpen(true);
+  };
+  const toggleSearch = () => {
+    if (isSearchOpen) {
+      Keyboard.dismiss();
+      setInputQuery('');
+    }
+    setSearchOpen(!isSearchOpen);
+  };
 
   return (
     <SafeAreaView
@@ -26,44 +109,56 @@ export default function HomeScreen() {
       testID="events-screen"
     >
       <FlatList
-        data={query.data?.items ?? []}
+        data={items}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
-            refreshing={query.isRefetching}
+            refreshing={query.isRefetching && !query.isFetchingNextPage}
             onRefresh={() => void query.refetch()}
             tintColor={colors.primary}
           />
         }
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <>
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.eyebrow}>
-                  {me.data?.city?.name ?? 'Ваш город'}
-                </Text>
-                <Text style={styles.title}>Планы на сегодня</Text>
-                <Text style={styles.subtitle}>
-                  Выбирайте занятие, а компания найдётся.
-                </Text>
-              </View>
-            </View>
-            {me.error || query.error ? (
-              <Text style={styles.error}>
-                {(me.error ?? query.error)?.message}
-              </Text>
-            ) : null}
-            <Text style={styles.sectionTitle}>Ближайшие активности</Text>
-          </>
+          <HomeHeader
+            cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
+            errorMessage={inlineError?.message}
+            inputQuery={inputQuery}
+            isCitySheetOpen={isCitySheetOpen}
+            isRefreshing={query.isFetching}
+            isSearchOpen={isSearchOpen}
+            onCityPress={openCityPicker}
+            onFilterPress={openFilterSheet}
+            onSearchChange={setInputQuery}
+            onSearchClear={() => setInputQuery('')}
+            onSearchPress={toggleSearch}
+            onRetry={retryHome}
+            filterCount={selectedCategoryIds.length}
+          />
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            Пока нет будущих активностей. Создайте первую — люди смогут к ней
-            присоединиться.
-          </Text>
+          <CatalogEmptyState
+            isLoading={query.isFetching}
+            onClearSearch={() => setInputQuery('')}
+            searchQuery={searchQuery}
+          />
         }
-        renderItem={({ item }) => (
+        ListFooterComponent={
+          query.hasNextPage ? (
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+              style={styles.paginationLoader}
+            />
+          ) : null
+        }
+        onEndReached={() => {
+          if (query.hasNextPage && !query.isFetchingNextPage) {
+            void query.fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item, index }) => (
           <Link
             href={{
               pathname: '/events/[eventId]',
@@ -71,103 +166,532 @@ export default function HomeScreen() {
             }}
             asChild
           >
-            <Pressable style={styles.card} testID={`event-card-${item.id}`}>
-              <View style={styles.cardTop}>
-                <Text style={styles.category}>{item.category.name}</Text>
-                <Text style={styles.capacity}>
-                  {item.participantsCount}/{item.capacity}
-                </Text>
-              </View>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.meta}>◷ {formatDate(item.startsAt)}</Text>
-              <Text style={styles.meta}>⌖ {item.meetingPlace}</Text>
-            </Pressable>
+            <EventCard
+              event={item}
+              highlight={index === 0}
+              testID={`event-card-${item.id}`}
+            />
           </Link>
         )}
+      />
+      <CityPickerSheet
+        cities={cities.data ?? []}
+        error={cities.error}
+        isLoading={cities.isPending}
+        isOpen={isCitySheetOpen}
+        onClose={() => setCitySheetOpen(false)}
+        onRetry={() => void cities.refetch()}
+        onSelect={(selectedId) => {
+          setDiscoveryCityId(selectedId);
+          setCitySheetOpen(false);
+        }}
+        selectedCityId={cityId}
+      />
+      <FilterBottomSheet
+        categories={categories.data ?? []}
+        error={categories.error}
+        isLoading={categories.isPending}
+        isOpen={isFilterSheetOpen}
+        onApply={(categoryIds) => {
+          setSelectedCategoryIds(categoryIds);
+          setFilterSheetOpen(false);
+        }}
+        onClose={() => setFilterSheetOpen(false)}
+        onRetry={() => void categories.refetch()}
+        selectedCategoryIds={selectedCategoryIds}
       />
     </SafeAreaView>
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+const SEARCH_ROW_HEIGHT = touchTarget + spacing.md;
+
+function HomeHeader({
+  cityName,
+  errorMessage,
+  filterCount,
+  inputQuery,
+  isCitySheetOpen,
+  isRefreshing,
+  isSearchOpen,
+  onFilterPress,
+  onCityPress,
+  onSearchChange,
+  onSearchClear,
+  onSearchPress,
+  onRetry,
+}: {
+  cityName: string;
+  errorMessage?: string;
+  filterCount: number;
+  inputQuery: string;
+  isCitySheetOpen: boolean;
+  isRefreshing: boolean;
+  isSearchOpen: boolean;
+  onFilterPress: () => void;
+  onCityPress: () => void;
+  onSearchChange: (value: string) => void;
+  onSearchClear: () => void;
+  onSearchPress: () => void;
+  onRetry: () => void;
+}) {
+  const [isSearchMounted, setSearchMounted] = useState(isSearchOpen);
+  const cityChevronProgress = useSharedValue(isCitySheetOpen ? 1 : 0);
+  const searchProgress = useSharedValue(isSearchOpen ? 1 : 0);
+
+  useEffect(() => {
+    cityChevronProgress.value = withTiming(isCitySheetOpen ? 1 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [cityChevronProgress, isCitySheetOpen]);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      setSearchMounted(true);
+      searchProgress.value = withTiming(1, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+      });
+      return;
+    }
+
+    searchProgress.value = withTiming(
+      0,
+      {
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+      },
+      (finished) => {
+        if (finished) scheduleOnRN(setSearchMounted, false);
+      },
+    );
+  }, [isSearchOpen, searchProgress]);
+
+  const cityChevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${cityChevronProgress.value * 180}deg` }],
+  }));
+  const searchAnimatedStyle = useAnimatedStyle(() => {
+    const progress = searchProgress.value;
+
+    return {
+      height: interpolate(progress, [0, 1], [0, SEARCH_ROW_HEIGHT]),
+      opacity: progress,
+      transform: [{ translateY: interpolate(progress, [0, 1], [-8, 0]) }],
+    };
+  });
+
+  return (
+    <View style={styles.headerContainer}>
+      <View style={styles.header}>
+        <View style={styles.cityRow}>
+          <Pressable
+            accessibilityLabel={`Город: ${cityName}. Выбрать город`}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isCitySheetOpen }}
+            onPress={onCityPress}
+            style={styles.cityInfo}
+            testID="home-city-selector"
+          >
+            <Ionicons
+              accessible={false}
+              color={colors.primary}
+              name="location-outline"
+              size={20}
+            />
+            <Text style={styles.city}>{cityName}</Text>
+            <Animated.View style={cityChevronStyle}>
+              <Ionicons
+                accessible={false}
+                color={colors.textMuted}
+                name="chevron-down"
+                size={16}
+              />
+            </Animated.View>
+          </Pressable>
+          <View style={styles.headerActions}>
+            <HeaderIconButton
+              accessibilityLabel={
+                isSearchOpen ? 'Закрыть поиск активностей' : 'Поиск активностей'
+              }
+              active={isSearchOpen}
+              activeTone="solid"
+              icon={isSearchOpen ? 'close-outline' : 'search-outline'}
+              onPress={onSearchPress}
+              iconColor={isSearchOpen ? colors.surface : colors.primaryDark}
+              testID="home-search-button"
+            />
+            <HeaderIconButton
+              accessibilityLabel="Открыть фильтры активностей"
+              active={filterCount > 0}
+              icon="options-outline"
+              iconColor={colors.primaryDark}
+              onPress={onFilterPress}
+              badgeCount={filterCount}
+              testID="home-filters-button"
+            />
+          </View>
+        </View>
+        {isSearchMounted ? (
+          <Animated.View
+            accessibilityElementsHidden={!isSearchOpen}
+            importantForAccessibility={
+              isSearchOpen ? 'yes' : 'no-hide-descendants'
+            }
+            pointerEvents={isSearchOpen ? 'auto' : 'none'}
+            style={[styles.searchAnimatedContainer, searchAnimatedStyle]}
+          >
+            <View style={styles.searchRow}>
+              <Ionicons
+                accessible={false}
+                color={colors.primaryDark}
+                name="search-outline"
+                size={20}
+              />
+              <TextInput
+                accessibilityLabel="Поиск активностей"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={isSearchOpen}
+                maxLength={100}
+                onChangeText={onSearchChange}
+                placeholder="Найти активность"
+                placeholderTextColor={colors.textMuted}
+                returnKeyType="search"
+                style={styles.searchInput}
+                testID="home-search-input"
+                value={inputQuery}
+              />
+              {isRefreshing ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : null}
+              {inputQuery.length > 0 ? (
+                <Pressable
+                  accessibilityLabel="Очистить поиск"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onSearchClear}
+                  style={styles.searchClear}
+                  testID="home-search-clear"
+                >
+                  <Ionicons
+                    accessible={false}
+                    color={colors.textMuted}
+                    name="close-circle"
+                    size={20}
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+          </Animated.View>
+        ) : null}
+        <Text style={styles.title}>Активности в городе</Text>
+        <Text style={styles.subtitle}>
+          Найдите занятие, к которому хочется присоединиться.
+        </Text>
+      </View>
+      {errorMessage ? (
+        <InlineError message={errorMessage} onRetry={onRetry} />
+      ) : null}
+    </View>
+  );
+}
+
+function HeaderIconButton({
+  accessibilityLabel,
+  active = false,
+  activeTone = 'soft',
+  badgeCount = 0,
+  disabled = false,
+  icon,
+  iconColor = colors.primaryDark,
+  onPress,
+  testID,
+}: {
+  accessibilityLabel: string;
+  active?: boolean;
+  activeTone?: 'soft' | 'solid';
+  badgeCount?: number;
+  disabled?: boolean;
+  icon: 'close-outline' | 'options-outline' | 'search-outline';
+  iconColor?: string;
+  onPress?: () => void;
+  testID: string;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.headerAction,
+        active &&
+          (activeTone === 'solid'
+            ? styles.headerActionSolid
+            : styles.headerActionActive),
+        disabled && styles.headerActionDisabled,
+        pressed && !disabled && styles.headerActionPressed,
+      ]}
+      testID={testID}
+    >
+      <Ionicons accessible={false} color={iconColor} name={icon} size={21} />
+      {badgeCount > 0 ? (
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>{badgeCount}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function LoadingState() {
+  return (
+    <SafeAreaView edges={['top']} style={styles.state} testID="events-screen">
+      <ActivityIndicator color={colors.primary} />
+      <Text style={styles.stateText}>Загружаем активности…</Text>
+    </SafeAreaView>
+  );
+}
+
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <SafeAreaView edges={['top']} style={styles.state} testID="events-screen">
+      <Text style={styles.stateTitle}>Не удалось загрузить активности</Text>
+      <Text style={styles.stateText}>{message}</Text>
+      <Pressable
+        accessibilityLabel="Повторить загрузку активностей"
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={styles.retryButton}
+      >
+        <Text style={styles.retryButtonText}>Повторить</Text>
+      </Pressable>
+    </SafeAreaView>
+  );
+}
+
+function InlineError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <View accessibilityRole="alert" style={styles.inlineError}>
+      <Text style={styles.inlineErrorText}>{message}</Text>
+      <Pressable
+        accessibilityLabel="Повторить обновление списка"
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={styles.inlineRetry}
+      >
+        <Text style={styles.inlineRetryText}>Повторить</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function CatalogEmptyState({
+  isLoading,
+  onClearSearch,
+  searchQuery,
+}: {
+  isLoading: boolean;
+  onClearSearch: () => void;
+  searchQuery: string;
+}) {
+  if (searchQuery && isLoading) {
+    return (
+      <View style={styles.empty}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.emptyText}>Ищем активности…</Text>
+      </View>
+    );
+  }
+  if (searchQuery) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyTitle}>Ничего не нашли</Text>
+        <Text style={styles.emptyText}>
+          По запросу «{searchQuery}» пока нет подходящих активностей.
+        </Text>
+        <Pressable
+          accessibilityLabel="Очистить поиск"
+          accessibilityRole="button"
+          onPress={onClearSearch}
+          style={styles.emptyClear}
+          testID="home-search-empty-clear"
+        >
+          <Text style={styles.emptyClearText}>Очистить поиск</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  return <EmptyState />;
+}
+
+function EmptyState() {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyTitle}>Пока нет ближайших активностей</Text>
+      <Text style={styles.emptyText}>
+        Загляните позже — новые встречи появятся здесь автоматически.
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1 },
-  list: { padding: 20, gap: 12, paddingBottom: 32 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 24,
-    paddingTop: 20,
+  container: { backgroundColor: colors.background, flex: 1 },
+  list: {
+    gap: spacing.md,
+    paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 7,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-    lineHeight: 22,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.medium,
-    borderWidth: 1,
-    gap: 9,
-    padding: 17,
-  },
-  cardTop: {
+  paginationLoader: { marginVertical: spacing.md },
+  headerContainer: { gap: spacing.md },
+  header: { paddingBottom: spacing.xs, paddingTop: 0 },
+  cityRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  category: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  capacity: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.pill,
-    color: colors.primaryDark,
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+  cityInfo: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    gap: spacing.sm,
   },
-  cardTitle: {
+  city: {
     color: colors.text,
-    fontSize: 19,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    fontSize: 17,
+    fontWeight: '700',
+    flexShrink: 1,
   },
-  meta: { color: colors.textMuted, fontSize: 14 },
-  error: { color: colors.danger, marginBottom: 16 },
-  empty: {
+  headerActions: { flexDirection: 'row', gap: spacing.xs },
+  headerAction: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: touchTarget,
+    justifyContent: 'center',
+    width: touchTarget,
+  },
+  headerActionActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  headerActionSolid: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  headerActionDisabled: { opacity: 0.65 },
+  headerActionPressed: { opacity: 0.76 },
+  searchAnimatedContainer: { overflow: 'hidden' },
+  searchRow: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    minHeight: touchTarget,
+    paddingHorizontal: spacing.md,
+  },
+  searchInput: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 16,
+    minHeight: touchTarget,
+    paddingVertical: 0,
+  },
+  searchClear: { alignItems: 'center', justifyContent: 'center' },
+  headerBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderColor: colors.background,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    height: 20,
+    justifyContent: 'center',
+    minWidth: 20,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4,
+  },
+  headerBadgeText: { color: colors.surface, fontSize: 11, fontWeight: '800' },
+  title: { color: colors.text, marginTop: spacing.md, ...typography.pageTitle },
+  subtitle: {
     color: colors.textMuted,
-    lineHeight: 21,
-    marginTop: 30,
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: spacing.sm,
+  },
+  inlineError: {
+    alignItems: 'center',
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.small,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  inlineErrorText: { color: colors.danger, flex: 1, lineHeight: 19 },
+  inlineRetry: { minHeight: touchTarget, justifyContent: 'center' },
+  inlineRetryText: { color: colors.danger, fontWeight: '800' },
+  empty: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.xxl },
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '800',
     textAlign: 'center',
   },
+  emptyText: { color: colors.textMuted, lineHeight: 21, textAlign: 'center' },
+  emptyClear: {
+    borderColor: colors.primary,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  emptyClearText: { color: colors.primary, fontWeight: '800' },
+  state: {
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    flex: 1,
+    gap: spacing.md,
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  stateTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  stateText: { color: colors.textMuted, lineHeight: 21, textAlign: 'center' },
+  retryButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.small,
+    justifyContent: 'center',
+    minHeight: touchTarget,
+    paddingHorizontal: spacing.xl,
+  },
+  retryButtonText: { color: colors.surface, fontWeight: '800' },
 });

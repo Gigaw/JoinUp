@@ -35,7 +35,7 @@ import {
   type ActorContext,
 } from '../../../auth/transport/http/current-actor';
 import { SessionGuard } from '../../../auth/transport/http/session.guard';
-import { EventsQueryDto } from './events-query.dto';
+import { EventsQueryDto, parseCsv } from './events-query.dto';
 import { ApplicationsQueryDto } from './applications-query.dto';
 import {
   ApplicationDecisionDto,
@@ -66,7 +66,13 @@ export class EventsController {
   @ApiOperation({ operationId: 'listEvents' })
   @ApiOkResponse({ type: EventListDto })
   list(@Query() query: EventsQueryDto): Promise<EventListDto> {
-    return this.events.list(query.cityId, query.limit);
+    return this.events.list(
+      query.cityId,
+      query.limit,
+      parseCsv(query.categoryIds) ?? [],
+      query.q,
+      query.cursor,
+    );
   }
 
   @Get(':eventId')

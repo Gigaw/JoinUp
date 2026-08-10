@@ -25,6 +25,8 @@ transitions.
 - Нативные permissions запрашиваются только в момент действия и с понятным объяснением.
 - Styling начинается с React Native `StyleSheet`, theme tokens и собственных primitives без
   дополнительного UI framework.
+- Presentation animations реализуются через `react-native-reanimated`; animation progress не
+  владеет feature state и не изменяет server state.
 
 ## 3. Целевая структура
 
@@ -244,6 +246,7 @@ Mutation response сначала записывается в точный detail
 Client state ограничен:
 
 - текущими filters и sort главного экрана;
+- выбранным городом каталога главного экрана;
 - незавершёнными form values;
 - выбранной вкладкой «Моих активностей»;
 - transient UI state: modal, picker, accordion.
@@ -455,6 +458,7 @@ build в рамках [Issue #16](https://github.com/Gigaw/JoinUp/issues/16); д
 - [Expo ImagePicker](https://docs.expo.dev/versions/latest/sdk/imagepicker/)
 - [Expo ImageManipulator](https://docs.expo.dev/versions/latest/sdk/imagemanipulator/)
 - [Expo Image](https://docs.expo.dev/versions/latest/sdk/image/)
+- [React Native Reanimated для Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/reanimated/)
 - [Maestro для React Native](https://docs.maestro.dev/platform-support/react-native)
 - [ADR 0008: Maestro для mobile E2E](../adr/0008-maestro-mobile-e2e.md)
 - [TanStack Query: React Native example](https://tanstack.com/query/v5/docs/framework/react/examples/react-native)

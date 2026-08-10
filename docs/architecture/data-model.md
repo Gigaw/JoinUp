@@ -156,8 +156,10 @@ notification center. При создании participation её `seen_event_vers
 - `(city_id, status, starts_at, id)` для основной ленты и cursor pagination;
 - `(organizer_id, starts_at)` для созданных событий;
 - `(category_id, starts_at)` как дополнительный filter path;
-- текстовый поиск по title, description и meeting place начинается с PostgreSQL-возможностей без
-  внешнего поискового сервиса; конкретный индекс выбирается после проверки запросов пилота.
+- GIN expression index с `to_tsvector('russian', ...)` по title, description и meeting place;
+- GIN expression index с `to_tsvector('russian', ...)` по category name для поиска по справочнику;
+- полнотекстовый поиск выполняется persistence adapter параметризованным raw SQL, без внешнего
+  поискового сервиса.
 
 ### 3.7. `event_participations`
 

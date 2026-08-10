@@ -18,6 +18,12 @@ import type {
 } from '../../../platform/http/api.dto';
 import { DomainError } from '../../../platform/http/domain.error';
 import {
+  EVENT_LIST_REPOSITORY,
+  type EventListRepository,
+  InvalidEventCursorError,
+  normalizeEventSearchQuery,
+} from './event-list.port';
+import {
   ApplicationDecisionDto,
   CreateEventDto,
   hasEventChanges,
@@ -38,7 +44,11 @@ type EventRecord = Prisma.EventGetPayload<{ include: typeof eventInclude }>;
 
 @Injectable()
 export class EventsService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(EVENT_LIST_REPOSITORY)
+    private readonly eventList: EventListRepository,
+  ) {}
 
   async create(
     actorId: string,
@@ -236,7 +246,14 @@ export class EventsService {
     );
   }
 
-  async list(cityId: string, limit: number): Promise<EventListDto> {
+  async list(
+    cityId: string,
+    limit: number,
+    categoryIds: string[] = [],
+    q?: string,
+    cursor?: string,
+  ): Promise<EventListDto> {
+    const normalizedQuery = normalizeEventSearchQuery(q);
     const city = await this.prisma.city.findFirst({
       where: { id: cityId, isSupported: true },
       select: { id: true },
@@ -249,19 +266,42 @@ export class EventsService {
       );
     }
 
+    let page;
+    try {
+      page = await this.eventList.list({
+        cityId,
+        categoryIds,
+        q: normalizedQuery,
+        cursor,
+        limit,
+      });
+    } catch (error) {
+      if (error instanceof InvalidEventCursorError) {
+        throw new DomainError(400, 'INVALID_CURSOR', 'Некорректный курсор.');
+      }
+      throw error;
+    }
+    if (page.eventIds.length === 0) {
+      return { items: [], nextCursor: page.nextCursor };
+    }
+
     const events = await this.prisma.event.findMany({
       where: {
+        id: { in: page.eventIds },
         cityId,
+        categoryId: categoryIds.length > 0 ? { in: categoryIds } : undefined,
         status: EventStatus.published,
         startsAt: { gt: new Date() },
       },
       include: eventInclude,
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
-      take: limit,
     });
+    const eventsById = new Map(events.map((event) => [event.id, event]));
     return {
-      items: events.map((event) => this.summary(event)),
-      nextCursor: null,
+      items: page.eventIds.flatMap((eventId) => {
+        const event = eventsById.get(eventId);
+        return event ? [this.summary(event)] : [];
+      }),
+      nextCursor: page.nextCursor,
     };
   }
 

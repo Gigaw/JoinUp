@@ -1,9 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
 import type { components } from '@vmeste/api-client';
 import { responseError, toAppError } from '../../shared/api/error';
 import { useApiClient } from '../../shared/api/use-api-client';
+import { normalizeSearchQuery } from './search-utils';
 
 type EventDetails = components['schemas']['EventDetailsDto'];
+type EventList = components['schemas']['EventListDto'];
 
 export function useEventDetails(eventId: string) {
   const client = useApiClient();
@@ -20,19 +26,45 @@ export function useEventDetails(eventId: string) {
   });
 }
 
-export function useEventList(cityId: string | undefined) {
+export function useEventList(
+  cityId: string | undefined,
+  categoryIds: readonly string[] = [],
+  searchQuery = '',
+) {
   const client = useApiClient();
-  return useQuery({
-    queryKey: ['events', 'list', cityId],
+  const normalizedCategoryIds = [...new Set(categoryIds)].sort();
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery) || undefined;
+  return useInfiniteQuery({
+    queryKey: [
+      'events',
+      'list',
+      cityId,
+      normalizedCategoryIds,
+      normalizedSearchQuery,
+    ],
     enabled: Boolean(cityId),
-    queryFn: async () => {
+    placeholderData: keepPreviousData,
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam, signal }): Promise<EventList> => {
       if (!cityId) return { items: [], nextCursor: null };
       const result = await client.GET('/v1/events', {
-        params: { query: { cityId, limit: 20 } },
+        signal,
+        params: {
+          query: {
+            cityId,
+            limit: 20,
+            ...(pageParam ? { cursor: pageParam } : {}),
+            ...(normalizedCategoryIds.length > 0
+              ? { categoryIds: normalizedCategoryIds.join(',') }
+              : {}),
+            ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
+          },
+        },
       });
       if (!result.data) throw toAppError(responseError(result));
       return result.data;
     },
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
 
