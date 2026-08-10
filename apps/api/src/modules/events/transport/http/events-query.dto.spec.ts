@@ -28,6 +28,35 @@ describe('EventsQueryDto', () => {
     expect(validateSync(query)).toEqual([]);
   });
 
+  it('normalizes whitespace in the full-text query', () => {
+    const query = plainToInstance(EventsQueryDto, {
+      cityId,
+      q: '  настольные   игры  ',
+    });
+
+    expect(query.q).toBe('настольные игры');
+    expect(validateSync(query)).toEqual([]);
+  });
+
+  it('treats an empty full-text query as no filter', () => {
+    const query = plainToInstance(EventsQueryDto, {
+      cityId,
+      q: '   ',
+    });
+
+    expect(query.q).toBeUndefined();
+    expect(validateSync(query)).toEqual([]);
+  });
+
+  it('rejects a full-text query longer than 100 characters', () => {
+    const query = plainToInstance(EventsQueryDto, {
+      cityId,
+      q: 'а'.repeat(101),
+    });
+
+    expect(validateSync(query).map((error) => error.property)).toContain('q');
+  });
+
   it('rejects duplicate or invalid category ids', () => {
     const query = plainToInstance(EventsQueryDto, {
       cityId,

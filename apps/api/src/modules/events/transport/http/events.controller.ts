@@ -70,6 +70,8 @@ export class EventsController {
       query.cityId,
       query.limit,
       parseCsv(query.categoryIds) ?? [],
+      query.q,
+      query.cursor,
     );
   }
 

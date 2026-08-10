@@ -804,6 +804,10 @@ export interface operations {
                 cityId: string;
                 /** @description Comma-separated category UUIDs. Matches any selected category. */
                 categoryIds?: string;
+                /** @description Full-text search across title, description, meeting place and category. */
+                q?: string;
+                /** @description Opaque cursor for the next filtered page. */
+                cursor?: string;
                 limit?: number;
             };
             header?: never;

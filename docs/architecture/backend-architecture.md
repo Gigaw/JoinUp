@@ -178,6 +178,11 @@ mapping; Prisma object никогда не сериализуется напря
 machine. Оба используют общий узкий `EventParticipationUnitOfWork` port для операций, которые
 должны блокировать event row и менять обе таблицы атомарно.
 
+Read-only список событий использует отдельный `EventListRepository` port. Prisma adapter выполняет
+все SQL для полнотекстового поиска и cursor pagination; Russian `tsvector`/GIN expressions и
+параметры поиска не выносятся в controller или application service. Application слой отвечает за
+проверку поддерживаемого города, mapping результата и public projection.
+
 Port реализуется одним Prisma adapter и предоставляет intent-oriented методы, например:
 
 - `createEventWithOrganizerParticipation`;

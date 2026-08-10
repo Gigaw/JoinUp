@@ -1,22 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCategories } from '../../../features/categories/use-categories';
 import { CityPickerSheet } from '../../../features/cities/ui/city-picker-sheet';
 import { useCities } from '../../../features/cities/use-cities';
+import { useEventCatalogState } from '../../../features/events/event-catalog-state';
 import { EventCard } from '../../../features/events/ui/event-card';
 import { useEventList } from '../../../features/events/event-queries';
 import { FilterBottomSheet } from '../../../features/events/ui/filter-bottom-sheet';
+import { normalizeSearchQuery } from '../../../features/events/search-utils';
+import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value';
 import { useMe } from '../../../shared/profile/use-me';
 import {
   colors,
@@ -28,16 +33,26 @@ import {
 
 export default function HomeScreen() {
   const me = useMe();
-  const [discoveryCityId, setDiscoveryCityId] = useState<string>();
   const [isCitySheetOpen, setCitySheetOpen] = useState(false);
   const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const {
+    discoveryCityId,
+    inputQuery,
+    isSearchOpen,
+    selectedCategoryIds,
+    setDiscoveryCityId,
+    setInputQuery,
+    setSearchOpen,
+    setSelectedCategoryIds,
+  } = useEventCatalogState();
   const profileCityId = me.data?.city?.id;
   const cityId = discoveryCityId ?? profileCityId;
   const cities = useCities();
   const categories = useCategories();
   const selectedCity = cities.data?.find((city) => city.id === cityId);
-  const query = useEventList(cityId, selectedCategoryIds);
+  const deferredQuery = useDeferredValue(normalizeSearchQuery(inputQuery));
+  const searchQuery = useDebouncedValue(deferredQuery, 350);
+  const query = useEventList(cityId, selectedCategoryIds, searchQuery);
   const isLoading =
     me.isLoading || (Boolean(cityId) && query.isLoading && !query.data);
   const blockingError =
@@ -57,11 +72,26 @@ export default function HomeScreen() {
     );
   }
 
-  const items = query.data?.items ?? [];
+  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   const inlineError = me.error ?? query.error;
   const retryHome = () => {
     void me.refetch();
     void query.refetch();
+  };
+  const openCityPicker = () => {
+    Keyboard.dismiss();
+    setCitySheetOpen(true);
+  };
+  const openFilterSheet = () => {
+    Keyboard.dismiss();
+    setFilterSheetOpen(true);
+  };
+  const toggleSearch = () => {
+    if (isSearchOpen) {
+      Keyboard.dismiss();
+      setInputQuery('');
+    }
+    setSearchOpen(!isSearchOpen);
   };
 
   return (
@@ -75,7 +105,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
-            refreshing={query.isRefetching}
+            refreshing={query.isRefetching && !query.isFetchingNextPage}
             onRefresh={() => void query.refetch()}
             tintColor={colors.primary}
           />
@@ -85,13 +115,40 @@ export default function HomeScreen() {
           <HomeHeader
             cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
             errorMessage={inlineError?.message}
-            onCityPress={() => setCitySheetOpen(true)}
-            onFilterPress={() => setFilterSheetOpen(true)}
+            inputQuery={inputQuery}
+            isRefreshing={query.isFetching}
+            isSearchOpen={isSearchOpen}
+            onCityPress={openCityPicker}
+            onFilterPress={openFilterSheet}
+            onSearchChange={setInputQuery}
+            onSearchClear={() => setInputQuery('')}
+            onSearchPress={toggleSearch}
             onRetry={retryHome}
             filterCount={selectedCategoryIds.length}
           />
         }
-        ListEmptyComponent={<EmptyState />}
+        ListEmptyComponent={
+          <CatalogEmptyState
+            isLoading={query.isFetching}
+            onClearSearch={() => setInputQuery('')}
+            searchQuery={searchQuery}
+          />
+        }
+        ListFooterComponent={
+          query.hasNextPage ? (
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+              style={styles.paginationLoader}
+            />
+          ) : null
+        }
+        onEndReached={() => {
+          if (query.hasNextPage && !query.isFetchingNextPage) {
+            void query.fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
         renderItem={({ item, index }) => (
           <Link
             href={{
@@ -142,15 +199,27 @@ function HomeHeader({
   cityName,
   errorMessage,
   filterCount,
+  inputQuery,
+  isRefreshing,
+  isSearchOpen,
   onFilterPress,
   onCityPress,
+  onSearchChange,
+  onSearchClear,
+  onSearchPress,
   onRetry,
 }: {
   cityName: string;
   errorMessage?: string;
   filterCount: number;
+  inputQuery: string;
+  isRefreshing: boolean;
+  isSearchOpen: boolean;
   onFilterPress: () => void;
   onCityPress: () => void;
+  onSearchChange: (value: string) => void;
+  onSearchClear: () => void;
+  onSearchPress: () => void;
   onRetry: () => void;
 }) {
   return (
@@ -180,10 +249,12 @@ function HomeHeader({
           </Pressable>
           <View style={styles.headerActions}>
             <HeaderIconButton
-              accessibilityLabel="Поиск активностей. Недоступно"
-              disabled
-              icon="search-outline"
-              testID="home-search-disabled"
+              accessibilityLabel={
+                isSearchOpen ? 'Закрыть поиск активностей' : 'Поиск активностей'
+              }
+              icon={isSearchOpen ? 'close-outline' : 'search-outline'}
+              onPress={onSearchPress}
+              testID="home-search-button"
             />
             <HeaderIconButton
               accessibilityLabel="Открыть фильтры активностей"
@@ -194,6 +265,50 @@ function HomeHeader({
             />
           </View>
         </View>
+        {isSearchOpen ? (
+          <View style={styles.searchRow}>
+            <Ionicons
+              accessible={false}
+              color={colors.textMuted}
+              name="search-outline"
+              size={20}
+            />
+            <TextInput
+              accessibilityLabel="Поиск активностей"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus
+              maxLength={100}
+              onChangeText={onSearchChange}
+              placeholder="Найти активность"
+              placeholderTextColor={colors.textMuted}
+              returnKeyType="search"
+              style={styles.searchInput}
+              testID="home-search-input"
+              value={inputQuery}
+            />
+            {isRefreshing ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : null}
+            {inputQuery.length > 0 ? (
+              <Pressable
+                accessibilityLabel="Очистить поиск"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={onSearchClear}
+                style={styles.searchClear}
+                testID="home-search-clear"
+              >
+                <Ionicons
+                  accessible={false}
+                  color={colors.textMuted}
+                  name="close-circle"
+                  size={20}
+                />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
         <Text style={styles.title}>Активности в городе</Text>
         <Text style={styles.subtitle}>
           Найдите занятие, к которому хочется присоединиться.
@@ -217,7 +332,7 @@ function HeaderIconButton({
   accessibilityLabel: string;
   badgeCount?: number;
   disabled?: boolean;
-  icon: 'options-outline' | 'search-outline';
+  icon: 'close-outline' | 'options-outline' | 'search-outline';
   onPress?: () => void;
   testID: string;
 }) {
@@ -299,6 +414,45 @@ function InlineError({
   );
 }
 
+function CatalogEmptyState({
+  isLoading,
+  onClearSearch,
+  searchQuery,
+}: {
+  isLoading: boolean;
+  onClearSearch: () => void;
+  searchQuery: string;
+}) {
+  if (searchQuery && isLoading) {
+    return (
+      <View style={styles.empty}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.emptyText}>Ищем активности…</Text>
+      </View>
+    );
+  }
+  if (searchQuery) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyTitle}>Ничего не нашли</Text>
+        <Text style={styles.emptyText}>
+          По запросу «{searchQuery}» пока нет подходящих активностей.
+        </Text>
+        <Pressable
+          accessibilityLabel="Очистить поиск"
+          accessibilityRole="button"
+          onPress={onClearSearch}
+          style={styles.emptyClear}
+          testID="home-search-empty-clear"
+        >
+          <Text style={styles.emptyClearText}>Очистить поиск</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  return <EmptyState />;
+}
+
 function EmptyState() {
   return (
     <View style={styles.empty}>
@@ -318,6 +472,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
   },
+  paginationLoader: { marginVertical: spacing.md },
   headerContainer: { gap: spacing.md },
   header: { paddingBottom: spacing.xs, paddingTop: 0 },
   cityRow: {
@@ -349,6 +504,26 @@ const styles = StyleSheet.create({
   },
   headerActionDisabled: { opacity: 0.65 },
   headerActionPressed: { backgroundColor: colors.surfaceMuted },
+  searchRow: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    minHeight: touchTarget,
+    paddingHorizontal: spacing.md,
+  },
+  searchInput: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 16,
+    minHeight: touchTarget,
+    paddingVertical: 0,
+  },
+  searchClear: { alignItems: 'center', justifyContent: 'center' },
   headerBadge: {
     alignItems: 'center',
     backgroundColor: colors.primary,
@@ -390,6 +565,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: { color: colors.textMuted, lineHeight: 21, textAlign: 'center' },
+  emptyClear: {
+    borderColor: colors.primary,
+    borderRadius: radius.small,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  emptyClearText: { color: colors.primary, fontWeight: '800' },
   state: {
     alignItems: 'center',
     backgroundColor: colors.background,

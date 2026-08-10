@@ -239,16 +239,18 @@ Query parameters:
 | --- | --- | --- |
 | `cityId` | UUID | Обязательный поддерживаемый город |
 | `categoryIds` | CSV UUID | Optional список категорий; событие подходит при совпадении с любой выбранной категорией |
-| `startsFrom` | timestamp | Inclusive lower bound |
-| `startsTo` | timestamp | Exclusive upper bound |
-| `hasAvailablePlaces` | boolean | При `true` исключает заполненные события |
-| `q` | string | Optional поиск по title, description, meeting place и category |
-| `cursor` | opaque string | Следующая страница |
+| `q` | string, максимум 100 символов | Optional Russian full-text поиск по title, description, meeting place и category; пробелы нормализуются |
+| `cursor` | opaque string | Следующая страница для того же города, категорий, q и порядка сортировки |
 | `limit` | integer | Default 20, maximum 50 |
 
-Без `q` published будущие события сортируются по `startsAt`, затем `id`. При `q` сначала применяется
-релевантность PostgreSQL-поиска, затем время. Cancelled, hidden и прошедшие события в общий список
-не входят.
+Без `q` published будущие события сортируются по `startsAt`, затем `id`. При `q` используется
+PostgreSQL Russian full-text search с GIN-индексами; результаты сортируются по `rank` по убыванию,
+затем по `startsAt` и `id`. Cancelled, hidden и прошедшие события в общий список не входят.
+`q` после `trim` и схлопывания повторных пробелов трактуется как отсутствие фильтра, если пуст.
+Курсор непрозрачен для mobile и отклоняется, если применён с другим набором фильтров или сортировкой.
+
+Периодические фильтры `startsFrom`/`startsTo`, фильтр свободных мест и другие варианты поиска по
+дате остаются отдельным slice и пока не принимаются текущим DTO.
 
 Response `200`:
 
