@@ -16,7 +16,6 @@ export function createApiClient(
     client.use({
       onResponse({ response }) {
         if (response.status === 401) void onUnauthorized();
-        return response;
       },
     });
   }

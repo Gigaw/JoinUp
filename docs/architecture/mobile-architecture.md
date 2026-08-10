@@ -244,6 +244,7 @@ Mutation response сначала записывается в точный detail
 Client state ограничен:
 
 - текущими filters и sort главного экрана;
+- выбранным городом каталога главного экрана;
 - незавершёнными form values;
 - выбранной вкладкой «Моих активностей»;
 - transient UI state: modal, picker, accordion.

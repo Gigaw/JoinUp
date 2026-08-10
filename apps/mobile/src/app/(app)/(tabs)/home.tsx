@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CityPickerSheet } from '../../../features/cities/ui/city-picker-sheet';
+import { useCities } from '../../../features/cities/use-cities';
 import { EventCard } from '../../../features/events/ui/event-card';
 import { useEventList } from '../../../features/events/event-queries';
 import { useMe } from '../../../shared/profile/use-me';
@@ -23,7 +26,12 @@ import {
 
 export default function HomeScreen() {
   const me = useMe();
-  const cityId = me.data?.city?.id;
+  const [discoveryCityId, setDiscoveryCityId] = useState<string>();
+  const [isCitySheetOpen, setCitySheetOpen] = useState(false);
+  const profileCityId = me.data?.city?.id;
+  const cityId = discoveryCityId ?? profileCityId;
+  const cities = useCities();
+  const selectedCity = cities.data?.find((city) => city.id === cityId);
   const query = useEventList(cityId);
   const isLoading = me.isLoading || (Boolean(cityId) && query.isLoading);
   const blockingError =
@@ -69,8 +77,9 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <HomeHeader
-            cityName={me.data?.city?.name ?? 'Ваш город'}
+            cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
             errorMessage={inlineError?.message}
+            onCityPress={() => setCitySheetOpen(true)}
             onRetry={retryHome}
           />
         }
@@ -91,6 +100,19 @@ export default function HomeScreen() {
           </Link>
         )}
       />
+      <CityPickerSheet
+        cities={cities.data ?? []}
+        error={cities.error}
+        isLoading={cities.isPending}
+        isOpen={isCitySheetOpen}
+        onClose={() => setCitySheetOpen(false)}
+        onRetry={() => void cities.refetch()}
+        onSelect={(selectedId) => {
+          setDiscoveryCityId(selectedId);
+          setCitySheetOpen(false);
+        }}
+        selectedCityId={cityId}
+      />
     </SafeAreaView>
   );
 }
@@ -98,10 +120,12 @@ export default function HomeScreen() {
 function HomeHeader({
   cityName,
   errorMessage,
+  onCityPress,
   onRetry,
 }: {
   cityName: string;
   errorMessage?: string;
+  onCityPress: () => void;
   onRetry: () => void;
 }) {
   return (
@@ -109,12 +133,11 @@ function HomeHeader({
       <View style={styles.header}>
         <View style={styles.cityRow}>
           <Pressable
-            accessibilityLabel={`Город: ${cityName}. Смена города недоступна`}
+            accessibilityLabel={`Город: ${cityName}. Выбрать город`}
             accessibilityRole="button"
-            accessibilityState={{ disabled: true }}
-            disabled
+            onPress={onCityPress}
             style={styles.cityInfo}
-            testID="home-city-disabled"
+            testID="home-city-selector"
           >
             <Ionicons
               accessible={false}
