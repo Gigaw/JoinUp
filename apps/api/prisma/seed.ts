@@ -49,6 +49,51 @@ const categoryDefinitions = [
   { slug: 'other', name: 'Другое', sortOrder: 80 },
 ] as const;
 
+const cityDefinitions = [
+  {
+    id: '85042e9d-c575-43b1-8ec5-239c07584ab7',
+    slug: 'vladikavkaz',
+    name: 'Владикавказ',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 10,
+  },
+  {
+    id: 'efc1187b-1bc1-4dd7-9e57-b63af9abb071',
+    slug: 'beslan',
+    name: 'Беслан',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 20,
+  },
+  {
+    id: '134a8b19-e413-46ff-b28c-6792dd2dd5a6',
+    slug: 'mozdok',
+    name: 'Моздок',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 30,
+  },
+  {
+    id: 'ba158689-fd2f-47cf-b7fc-4e60f9b9d235',
+    slug: 'alagir',
+    name: 'Алагир',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 40,
+  },
+  {
+    id: '5bb04513-11cf-48fd-9c1a-8789920d76cf',
+    slug: 'ardon',
+    name: 'Ардон',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 50,
+  },
+  {
+    id: ids.city,
+    slug: 'kazan',
+    name: 'Казань',
+    timeZone: 'Europe/Moscow',
+    sortOrder: 100,
+  },
+] as const;
+
 const eventDefinitions = [
   {
     key: 'sport',
@@ -141,16 +186,21 @@ const eventDefinitions = [
 ] as const;
 
 async function main(): Promise<void> {
-  const city = await prisma.city.upsert({
+  for (const definition of cityDefinitions) {
+    await prisma.city.upsert({
+      where: { id: definition.id },
+      update: {
+        slug: definition.slug,
+        name: definition.name,
+        timeZone: definition.timeZone,
+        isSupported: true,
+        sortOrder: definition.sortOrder,
+      },
+      create: definition,
+    });
+  }
+  const city = await prisma.city.findUniqueOrThrow({
     where: { id: ids.city },
-    update: { isSupported: true },
-    create: {
-      id: ids.city,
-      slug: 'kazan',
-      name: 'Казань',
-      timeZone: 'Europe/Moscow',
-      sortOrder: 10,
-    },
   });
   const categories = new Map<string, { id: string }>();
   for (const definition of categoryDefinitions) {

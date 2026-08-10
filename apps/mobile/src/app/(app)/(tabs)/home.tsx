@@ -38,7 +38,8 @@ export default function HomeScreen() {
   const categories = useCategories();
   const selectedCity = cities.data?.find((city) => city.id === cityId);
   const query = useEventList(cityId, selectedCategoryIds);
-  const isLoading = me.isLoading || (Boolean(cityId) && query.isLoading);
+  const isLoading =
+    me.isLoading || (Boolean(cityId) && query.isLoading && !query.data);
   const blockingError =
     (me.error && !me.data ? me.error : null) ??
     (query.error && !query.data ? query.error : null);

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { components } from '@vmeste/api-client';
 import { responseError, toAppError } from '../../shared/api/error';
 import { useApiClient } from '../../shared/api/use-api-client';
@@ -29,6 +29,7 @@ export function useEventList(
   return useQuery({
     queryKey: ['events', 'list', cityId, normalizedCategoryIds],
     enabled: Boolean(cityId),
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       if (!cityId) return { items: [], nextCursor: null };
       const result = await client.GET('/v1/events', {

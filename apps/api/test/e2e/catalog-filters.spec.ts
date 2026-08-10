@@ -40,7 +40,7 @@ describe('catalog filters', () => {
 
   it('filters events by one or several categories', async () => {
     const city = await prisma.city.findFirstOrThrow({
-      where: { isSupported: true },
+      where: { isSupported: true, slug: 'kazan' },
     });
     const login = await request(app.getHttpServer())
       .post('/v1/auth/login')

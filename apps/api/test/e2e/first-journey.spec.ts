@@ -60,8 +60,11 @@ describe('first user journey', () => {
     const cities = await request(app.getHttpServer())
       .get('/v1/cities')
       .expect(200);
-    const cityId = cities.body[0].id as string;
-    expect(cities.body[0]).toHaveProperty('slug');
+    const seedCity = cities.body.find(
+      (city: { slug?: string }) => city.slug === 'kazan',
+    ) as { id: string } | undefined;
+    expect(seedCity).toBeDefined();
+    const cityId = seedCity!.id;
 
     const categories = await request(app.getHttpServer())
       .get('/v1/categories')
