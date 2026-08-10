@@ -19,6 +19,7 @@ const ids = {
   events: {
     sport: '5b61f5a6-bc32-4f7f-bb51-24cebd154a39',
     walks: '2c2fb7a0-56e5-4cf1-9a70-e7cddf2fb7a1',
+    runningByEmbankment: 'b0f4d21e-3f92-4a7e-8b15-6c2d9e4f7a10',
     games: 'd7ed1d58-7e96-48cb-8c82-7edbcf2a8b42',
     culture: 'a64b4a73-8c20-4a70-9440-31bb176aa53d',
     music: 'e03d59ac-5981-4d1e-bc0c-83a2fbf66f70',
@@ -34,6 +35,7 @@ const ids = {
   participations: {
     sport: '91a64511-12c4-46a2-a8fd-cd66862a4365',
     walks: 'd4a88d0d-8e59-4b94-b8c0-45f7f06db7b1',
+    runningByEmbankment: 'd8a6c4e2-1f90-4b73-9e25-7c4a2b6d8f10',
     games: '8a9c3b4e-c9d8-4d5f-82b1-1f4a6e7b8c90',
     culture: 'b7e2c9f4-3a8d-4e1b-95c6-0d7f2a4b6c8e',
     music: '4e6f8a1c-2b3d-4f5a-9c7e-0b1d3f5a7c9e',
@@ -128,6 +130,18 @@ const eventDefinitions = [
     startsAtHourUtc: 10,
     durationHours: 2,
     capacity: 10,
+  },
+  {
+    key: 'runningByEmbankment',
+    citySlug: 'kazan',
+    categorySlug: 'sport',
+    title: 'Бег по набережной',
+    description: 'Лёгкая пробежка по набережной для любого уровня подготовки.',
+    meetingPlace: 'Набережная у центрального моста',
+    daysFromNow: 3,
+    startsAtHourUtc: 8,
+    durationHours: 1,
+    capacity: 12,
   },
   {
     key: 'games',
