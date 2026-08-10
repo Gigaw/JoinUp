@@ -11,10 +11,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCategories } from '../../../features/categories/use-categories';
 import { CityPickerSheet } from '../../../features/cities/ui/city-picker-sheet';
 import { useCities } from '../../../features/cities/use-cities';
 import { EventCard } from '../../../features/events/ui/event-card';
 import { useEventList } from '../../../features/events/event-queries';
+import { FilterBottomSheet } from '../../../features/events/ui/filter-bottom-sheet';
 import { useMe } from '../../../shared/profile/use-me';
 import {
   colors,
@@ -28,11 +30,14 @@ export default function HomeScreen() {
   const me = useMe();
   const [discoveryCityId, setDiscoveryCityId] = useState<string>();
   const [isCitySheetOpen, setCitySheetOpen] = useState(false);
+  const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const profileCityId = me.data?.city?.id;
   const cityId = discoveryCityId ?? profileCityId;
   const cities = useCities();
+  const categories = useCategories();
   const selectedCity = cities.data?.find((city) => city.id === cityId);
-  const query = useEventList(cityId);
+  const query = useEventList(cityId, selectedCategoryIds);
   const isLoading = me.isLoading || (Boolean(cityId) && query.isLoading);
   const blockingError =
     (me.error && !me.data ? me.error : null) ??
@@ -80,7 +85,9 @@ export default function HomeScreen() {
             cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
             errorMessage={inlineError?.message}
             onCityPress={() => setCitySheetOpen(true)}
+            onFilterPress={() => setFilterSheetOpen(true)}
             onRetry={retryHome}
+            filterCount={selectedCategoryIds.length}
           />
         }
         ListEmptyComponent={<EmptyState />}
@@ -113,6 +120,19 @@ export default function HomeScreen() {
         }}
         selectedCityId={cityId}
       />
+      <FilterBottomSheet
+        categories={categories.data ?? []}
+        error={categories.error}
+        isLoading={categories.isPending}
+        isOpen={isFilterSheetOpen}
+        onApply={(categoryIds) => {
+          setSelectedCategoryIds(categoryIds);
+          setFilterSheetOpen(false);
+        }}
+        onClose={() => setFilterSheetOpen(false)}
+        onRetry={() => void categories.refetch()}
+        selectedCategoryIds={selectedCategoryIds}
+      />
     </SafeAreaView>
   );
 }
@@ -120,11 +140,15 @@ export default function HomeScreen() {
 function HomeHeader({
   cityName,
   errorMessage,
+  filterCount,
+  onFilterPress,
   onCityPress,
   onRetry,
 }: {
   cityName: string;
   errorMessage?: string;
+  filterCount: number;
+  onFilterPress: () => void;
   onCityPress: () => void;
   onRetry: () => void;
 }) {
@@ -156,13 +180,16 @@ function HomeHeader({
           <View style={styles.headerActions}>
             <HeaderIconButton
               accessibilityLabel="Поиск активностей. Недоступно"
+              disabled
               icon="search-outline"
               testID="home-search-disabled"
             />
             <HeaderIconButton
-              accessibilityLabel="Фильтры активностей. Недоступно"
+              accessibilityLabel="Открыть фильтры активностей"
               icon="options-outline"
-              testID="home-filters-disabled"
+              onPress={onFilterPress}
+              badgeCount={filterCount}
+              testID="home-filters-button"
             />
           </View>
         </View>
@@ -180,23 +207,39 @@ function HomeHeader({
 
 function HeaderIconButton({
   accessibilityLabel,
+  badgeCount = 0,
+  disabled = false,
   icon,
+  onPress,
   testID,
 }: {
   accessibilityLabel: string;
+  badgeCount?: number;
+  disabled?: boolean;
   icon: 'options-outline' | 'search-outline';
+  onPress?: () => void;
   testID: string;
 }) {
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      accessibilityState={{ disabled: true }}
-      disabled
-      style={styles.headerAction}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.headerAction,
+        disabled && styles.headerActionDisabled,
+        pressed && !disabled && styles.headerActionPressed,
+      ]}
       testID={testID}
     >
       <Ionicons accessible={false} color={colors.text} name={icon} size={21} />
+      {badgeCount > 0 ? (
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>{badgeCount}</Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -301,9 +344,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: touchTarget,
     justifyContent: 'center',
-    opacity: 0.65,
     width: touchTarget,
   },
+  headerActionDisabled: { opacity: 0.65 },
+  headerActionPressed: { backgroundColor: colors.surfaceMuted },
+  headerBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderColor: colors.background,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    height: 20,
+    justifyContent: 'center',
+    minWidth: 20,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4,
+  },
+  headerBadgeText: { color: colors.surface, fontSize: 11, fontWeight: '800' },
   title: { color: colors.text, marginTop: spacing.md, ...typography.pageTitle },
   subtitle: {
     color: colors.textMuted,

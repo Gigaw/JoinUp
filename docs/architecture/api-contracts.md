@@ -238,7 +238,7 @@ Query parameters:
 | Параметр | Тип | Правило |
 | --- | --- | --- |
 | `cityId` | UUID | Обязательный поддерживаемый город |
-| `categoryIds` | CSV UUID | Optional список категорий |
+| `categoryIds` | CSV UUID | Optional список категорий; событие подходит при совпадении с любой выбранной категорией |
 | `startsFrom` | timestamp | Inclusive lower bound |
 | `startsTo` | timestamp | Exclusive upper bound |
 | `hasAvailablePlaces` | boolean | При `true` исключает заполненные события |

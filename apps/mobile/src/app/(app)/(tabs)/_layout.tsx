@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
+import type { ColorValue } from 'react-native';
 import { colors } from '../../../shared/theme/tokens';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 type TabScreenOptionsArgs = { route: { name: string } };
-type TabBarIconProps = { color: string; focused: boolean; size: number };
+type TabBarIconProps = { color: ColorValue; focused: boolean; size: number };
 
 const icons: Record<string, { active: IoniconName; inactive: IoniconName }> = {
   home: { active: 'home', inactive: 'home-outline' },

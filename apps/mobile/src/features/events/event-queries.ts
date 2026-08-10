@@ -20,15 +20,27 @@ export function useEventDetails(eventId: string) {
   });
 }
 
-export function useEventList(cityId: string | undefined) {
+export function useEventList(
+  cityId: string | undefined,
+  categoryIds: readonly string[] = [],
+) {
   const client = useApiClient();
+  const normalizedCategoryIds = [...new Set(categoryIds)].sort();
   return useQuery({
-    queryKey: ['events', 'list', cityId],
+    queryKey: ['events', 'list', cityId, normalizedCategoryIds],
     enabled: Boolean(cityId),
     queryFn: async () => {
       if (!cityId) return { items: [], nextCursor: null };
       const result = await client.GET('/v1/events', {
-        params: { query: { cityId, limit: 20 } },
+        params: {
+          query: {
+            cityId,
+            limit: 20,
+            ...(normalizedCategoryIds.length > 0
+              ? { categoryIds: normalizedCategoryIds.join(',') }
+              : {}),
+          },
+        },
       });
       if (!result.data) throw toAppError(responseError(result));
       return result.data;

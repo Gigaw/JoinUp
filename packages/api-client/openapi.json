@@ -468,6 +468,15 @@
             }
           },
           {
+            "name": "categoryIds",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated category UUIDs. Matches any selected category.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limit",
             "required": false,
             "in": "query",

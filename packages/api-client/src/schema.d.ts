@@ -802,6 +802,8 @@ export interface operations {
         parameters: {
             query: {
                 cityId: string;
+                /** @description Comma-separated category UUIDs. Matches any selected category. */
+                categoryIds?: string;
                 limit?: number;
             };
             header?: never;

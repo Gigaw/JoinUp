@@ -236,7 +236,11 @@ export class EventsService {
     );
   }
 
-  async list(cityId: string, limit: number): Promise<EventListDto> {
+  async list(
+    cityId: string,
+    limit: number,
+    categoryIds: string[] = [],
+  ): Promise<EventListDto> {
     const city = await this.prisma.city.findFirst({
       where: { id: cityId, isSupported: true },
       select: { id: true },
@@ -252,6 +256,7 @@ export class EventsService {
     const events = await this.prisma.event.findMany({
       where: {
         cityId,
+        categoryId: categoryIds.length > 0 ? { in: categoryIds } : undefined,
         status: EventStatus.published,
         startsAt: { gt: new Date() },
       },
