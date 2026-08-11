@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { components } from '@vmeste/api-client';
 import { responseError, toAppError } from '../../shared/api/error';
 import { useApiClient } from '../../shared/api/use-api-client';
@@ -11,6 +11,7 @@ type ActivitiesList = components['schemas']['ActivitiesListDto'];
 export function useMyActivities(tab: ActivitiesTab) {
   const client = useApiClient();
   return useQuery({
+    placeholderData: keepPreviousData,
     queryKey: ['me', 'activities', tab],
     queryFn: async (): Promise<ActivitiesList> => {
       const result = await client.GET('/v1/me/activities', {
