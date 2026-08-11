@@ -36,6 +36,7 @@ type EventCardProps = {
   children?: ReactNode;
   highlight?: boolean;
   onPress?: PressableProps['onPress'];
+  showCity?: boolean;
   testID?: string;
 };
 
@@ -44,6 +45,7 @@ export function EventCard({
   children,
   highlight = false,
   onPress,
+  showCity = false,
   testID,
 }: EventCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -122,7 +124,9 @@ export function EventCard({
               numberOfLines={2}
               style={[styles.metaText, styles.locationText]}
             >
-              {event.meetingPlace}
+              {showCity
+                ? `${event.city.name} · ${event.meetingPlace}`
+                : event.meetingPlace}
             </Text>
           </View>
         </View>
