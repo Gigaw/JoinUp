@@ -108,72 +108,74 @@ export default function HomeScreen() {
       style={styles.container}
       testID="events-screen"
     >
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => void query.refetch()}
-            tintColor={colors.primary}
-          />
-        }
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <HomeHeader
-            cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
-            errorMessage={inlineError?.message}
-            inputQuery={inputQuery}
-            isCitySheetOpen={isCitySheetOpen}
-            isRefreshing={query.isFetching}
-            isSearchOpen={isSearchOpen}
-            onCityPress={openCityPicker}
-            onFilterPress={openFilterSheet}
-            onSearchChange={setInputQuery}
-            onSearchClear={() => setInputQuery('')}
-            onSearchPress={toggleSearch}
-            onRetry={retryHome}
-            filterCount={selectedCategoryIds.length}
-          />
-        }
-        ListEmptyComponent={
-          <CatalogEmptyState
-            isLoading={query.isFetching}
-            onClearSearch={() => setInputQuery('')}
-            searchQuery={searchQuery}
-          />
-        }
-        ListFooterComponent={
-          query.hasNextPage ? (
-            <ActivityIndicator
-              color={colors.primary}
-              size="small"
-              style={styles.paginationLoader}
-            />
-          ) : null
-        }
-        onEndReached={() => {
-          if (query.hasNextPage && !query.isFetchingNextPage) {
-            void query.fetchNextPage();
-          }
-        }}
-        onEndReachedThreshold={0.5}
-        renderItem={({ item, index }) => (
-          <Link
-            href={{
-              pathname: '/events/[eventId]',
-              params: { eventId: item.id },
-            }}
-            asChild
-          >
-            <EventCard
-              event={item}
-              highlight={index === 0}
-              testID={`event-card-${item.id}`}
-            />
-          </Link>
-        )}
+      <HomeHeader
+        cityName={selectedCity?.name ?? me.data?.city?.name ?? 'Ваш город'}
+        errorMessage={inlineError?.message}
+        inputQuery={inputQuery}
+        isCitySheetOpen={isCitySheetOpen}
+        isRefreshing={query.isFetching}
+        isSearchOpen={isSearchOpen}
+        onCityPress={openCityPicker}
+        onFilterPress={openFilterSheet}
+        onSearchChange={setInputQuery}
+        onSearchClear={() => setInputQuery('')}
+        onSearchPress={toggleSearch}
+        onRetry={retryHome}
+        filterCount={selectedCategoryIds.length}
       />
+      <View style={styles.listViewport}>
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={query.isRefetching && !query.isFetchingNextPage}
+              onRefresh={() => void query.refetch()}
+              tintColor={colors.primary}
+            />
+          }
+          style={styles.listFlatList}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={<HomeCatalogIntro />}
+          ListEmptyComponent={
+            <CatalogEmptyState
+              isLoading={query.isFetching}
+              onClearSearch={() => setInputQuery('')}
+              searchQuery={searchQuery}
+            />
+          }
+          ListFooterComponent={
+            query.hasNextPage ? (
+              <ActivityIndicator
+                color={colors.primary}
+                size="small"
+                style={styles.paginationLoader}
+              />
+            ) : null
+          }
+          onEndReached={() => {
+            if (query.hasNextPage && !query.isFetchingNextPage) {
+              void query.fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          renderItem={({ item, index }) => (
+            <Link
+              href={{
+                pathname: '/events/[eventId]',
+                params: { eventId: item.id },
+              }}
+              asChild
+            >
+              <EventCard
+                event={item}
+                highlight={index === 0}
+                testID={`event-card-${item.id}`}
+              />
+            </Link>
+          )}
+        />
+      </View>
       <CityPickerSheet
         cities={cities.data ?? []}
         error={cities.error}
@@ -385,14 +387,21 @@ function HomeHeader({
             </View>
           </Animated.View>
         ) : null}
-        <Text style={styles.title}>Активности в городе</Text>
-        <Text style={styles.subtitle}>
-          Найдите занятие, к которому хочется присоединиться.
-        </Text>
       </View>
       {errorMessage ? (
         <InlineError message={errorMessage} onRetry={onRetry} />
       ) : null}
+    </View>
+  );
+}
+
+function HomeCatalogIntro() {
+  return (
+    <View>
+      <Text style={styles.title}>Активности в городе</Text>
+      <Text style={styles.subtitle}>
+        Найдите занятие, к которому хочется присоединиться.
+      </Text>
     </View>
   );
 }
@@ -558,9 +567,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
   },
+  listViewport: { flex: 1, minHeight: 0 },
+  listFlatList: { flex: 1 },
   paginationLoader: { marginVertical: spacing.md },
   headerContainer: { gap: spacing.md },
-  header: { paddingBottom: spacing.xs, paddingTop: 0 },
+  header: {
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+  },
   cityRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -635,7 +650,7 @@ const styles = StyleSheet.create({
     top: -4,
   },
   headerBadgeText: { color: colors.surface, fontSize: 11, fontWeight: '800' },
-  title: { color: colors.text, marginTop: spacing.md, ...typography.pageTitle },
+  title: { color: colors.text, ...typography.pageTitle },
   subtitle: {
     color: colors.textMuted,
     fontSize: 16,
@@ -648,6 +663,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.small,
     flexDirection: 'row',
     gap: spacing.sm,
+    marginHorizontal: spacing.xl,
     padding: spacing.md,
   },
   inlineErrorText: { color: colors.danger, flex: 1, lineHeight: 19 },
