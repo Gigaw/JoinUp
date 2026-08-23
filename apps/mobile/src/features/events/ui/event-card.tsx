@@ -1,17 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
   type PressableProps,
 } from 'react-native';
-import categoryGames from '../../../../assets/events/category-games.png';
-import categorySport from '../../../../assets/events/category-sport.png';
-import { getApiBaseUrl } from '../../../shared/api/config';
 import {
   colors,
   radius,
@@ -24,12 +19,7 @@ import {
   getEventAccessibilityLabel,
   type EventSummary,
 } from '../event-card-utils';
-
-const categoryImages: Record<string, number> = {
-  games: categoryGames,
-  'board-games': categoryGames,
-  sport: categorySport,
-};
+import { EventImage } from './event-image';
 
 type EventCardProps = {
   event: EventSummary;
@@ -48,18 +38,6 @@ export function EventCard({
   showCity = false,
   testID,
 }: EventCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const fallbackImage = getFallbackImage(event.category.slug);
-
-  useEffect(() => {
-    setImageFailed(false);
-  }, [event.imageUrl]);
-
-  const imageSource =
-    event.imageUrl && !imageFailed
-      ? { uri: resolveImageUrl(event.imageUrl) }
-      : fallbackImage;
-
   return (
     <Pressable
       accessibilityHint="Открыть подробности активности"
@@ -73,11 +51,9 @@ export function EventCard({
       ]}
       testID={testID}
     >
-      <Image
-        accessible={false}
-        defaultSource={fallbackImage}
-        onError={() => setImageFailed(true)}
-        source={imageSource}
+      <EventImage
+        categorySlug={event.category.slug}
+        imageUrl={event.imageUrl}
         style={styles.thumbnail}
       />
       <View style={styles.content}>
@@ -134,15 +110,6 @@ export function EventCard({
       </View>
     </Pressable>
   );
-}
-
-function getFallbackImage(categorySlug: string): number {
-  return categoryImages[categorySlug] ?? categoryImages.games;
-}
-
-function resolveImageUrl(imageUrl: string): string {
-  if (/^https?:\/\//.test(imageUrl)) return imageUrl;
-  return `${getApiBaseUrl()}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
 }
 
 const styles = StyleSheet.create({

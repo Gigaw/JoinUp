@@ -59,10 +59,30 @@ export interface ActivityRecord {
   }>;
 }
 
+export interface PublicProfileRecord {
+  profile: ProfileRecord;
+  upcomingEvents: Array<{
+    id: string;
+    category: ProfileCategory;
+    city: ProfileCity;
+    title: string;
+    meetingPlace: string;
+    startsAt: Date;
+    endsAt: Date | null;
+    imageObjectKey: string | null;
+    participationMode: ParticipationMode;
+    capacity: number;
+    status: EventStatus;
+    contentVersion: number;
+    participations: Array<{ status: ParticipationStatus }>;
+  }>;
+}
+
 export const USERS_REPOSITORY = Symbol('USERS_REPOSITORY');
 
 export interface UsersRepository {
   findMe(userId: string): Promise<ProfileRecord | null>;
+  findPublicProfile(userId: string): Promise<PublicProfileRecord | null>;
   findActivities(
     userId: string,
     tab: ActivitiesTab,

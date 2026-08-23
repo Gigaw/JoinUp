@@ -202,6 +202,43 @@
         ]
       }
     },
+    "/v1/users/{userId}": {
+      "get": {
+        "operationId": "getPublicUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/v1/cities": {
       "get": {
         "operationId": "listCities",
@@ -1277,6 +1314,130 @@
           }
         }
       },
+      "EventSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryDto"
+          },
+          "city": {
+            "$ref": "#/components/schemas/CityDto"
+          },
+          "meetingPlace": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "participationMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "approval_required"
+            ]
+          },
+          "participantsCount": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "isFull": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published",
+              "cancelled"
+            ]
+          },
+          "contentVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "city",
+          "meetingPlace",
+          "startsAt",
+          "participationMode",
+          "participantsCount",
+          "capacity",
+          "isFull",
+          "status",
+          "contentVersion"
+        ]
+      },
+      "PublicUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CityDto"
+              }
+            ]
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryDto"
+            }
+          },
+          "age": {
+            "type": "number"
+          },
+          "upcomingEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "interests",
+          "upcomingEvents"
+        ]
+      },
       "ChatSummaryDto": {
         "type": "object",
         "properties": {
@@ -1616,80 +1777,6 @@
           "createdAt",
           "updatedAt",
           "availableActions"
-        ]
-      },
-      "EventSummaryDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
-            "$ref": "#/components/schemas/CategoryDto"
-          },
-          "city": {
-            "$ref": "#/components/schemas/CityDto"
-          },
-          "meetingPlace": {
-            "type": "string"
-          },
-          "startsAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endsAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "imageUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "participationMode": {
-            "type": "string",
-            "enum": [
-              "automatic",
-              "approval_required"
-            ]
-          },
-          "participantsCount": {
-            "type": "number"
-          },
-          "capacity": {
-            "type": "number"
-          },
-          "isFull": {
-            "type": "boolean"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "published",
-              "cancelled"
-            ]
-          },
-          "contentVersion": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "category",
-          "city",
-          "meetingPlace",
-          "startsAt",
-          "participationMode",
-          "participantsCount",
-          "capacity",
-          "isFull",
-          "status",
-          "contentVersion"
         ]
       },
       "EventListDto": {

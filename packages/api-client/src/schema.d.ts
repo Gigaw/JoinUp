@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPublicUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cities": {
         parameters: {
             query?: never;
@@ -391,6 +407,38 @@ export interface components {
             cityId?: string;
             categoryIds?: string[];
         };
+        EventSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            category: components["schemas"]["CategoryDto"];
+            city: components["schemas"]["CityDto"];
+            meetingPlace: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            imageUrl?: string | null;
+            /** @enum {string} */
+            participationMode: "automatic" | "approval_required";
+            participantsCount: number;
+            capacity: number;
+            isFull: boolean;
+            /** @enum {string} */
+            status: "published" | "cancelled";
+            contentVersion: number;
+        };
+        PublicUserDto: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            city?: components["schemas"]["CityDto"] | null;
+            interests: components["schemas"]["CategoryDto"][];
+            age?: number;
+            upcomingEvents: components["schemas"]["EventSummaryDto"][];
+        };
         ChatSummaryDto: {
             /** Format: uuid */
             eventId: string;
@@ -484,27 +532,6 @@ export interface components {
             updatedAt: string;
             myParticipation?: components["schemas"]["MyParticipationDto"] | null;
             availableActions: string[];
-        };
-        EventSummaryDto: {
-            /** Format: uuid */
-            id: string;
-            title: string;
-            category: components["schemas"]["CategoryDto"];
-            city: components["schemas"]["CityDto"];
-            meetingPlace: string;
-            /** Format: date-time */
-            startsAt: string;
-            /** Format: date-time */
-            endsAt?: string | null;
-            imageUrl?: string | null;
-            /** @enum {string} */
-            participationMode: "automatic" | "approval_required";
-            participantsCount: number;
-            capacity: number;
-            isFull: boolean;
-            /** @enum {string} */
-            status: "published" | "cancelled";
-            contentVersion: number;
         };
         EventListDto: {
             items: components["schemas"]["EventSummaryDto"][];
@@ -683,6 +710,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivitiesListDto"];
+                };
+            };
+        };
+    };
+    getPublicUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicUserDto"];
                 };
             };
         };

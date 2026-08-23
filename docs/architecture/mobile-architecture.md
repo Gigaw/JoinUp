@@ -120,8 +120,10 @@ src/app/
     events/
       index.tsx
       [eventId].tsx
+      [eventId]/participants.tsx
       create.tsx
       edit.tsx
+    users/[userId].tsx
     profile/edit.tsx
     settings.tsx
 ```
@@ -206,6 +208,8 @@ Query keys централизованы по feature и состоят толь�
 ['me']
 ['events', 'list', normalizedFilters]
 ['events', 'detail', eventId]
+['events', 'participants', eventId]
+['users', 'public', userId]
 ['events', 'applications', eventId, normalizedFilters]
 ['activities', tab, cursorFilters]
 ['users', 'public', userId]

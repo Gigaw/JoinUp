@@ -3,11 +3,14 @@ import { AuthModule } from '../auth/auth.module';
 import { USERS_REPOSITORY } from './application/users.repository';
 import { UsersService } from './application/users.service';
 import { PrismaUsersRepository } from './persistence/prisma/prisma-users.repository';
-import { UsersController } from './transport/http/users.controller';
+import {
+  PublicUsersController,
+  UsersController,
+} from './transport/http/users.controller';
 
 @Module({
   imports: [AuthModule],
-  controllers: [UsersController],
+  controllers: [UsersController, PublicUsersController],
   providers: [
     UsersService,
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },

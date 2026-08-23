@@ -52,6 +52,19 @@ export class ParticipantDto {
   @ApiPropertyOptional() age?: number;
 }
 
+export class PublicUserDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() displayName!: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) avatarUrl!:
+    string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) bio!: string | null;
+  @ApiPropertyOptional({ nullable: true, type: CityDto }) city!: CityDto | null;
+  @ApiProperty({ type: [CategoryDto] }) interests!: CategoryDto[];
+  @ApiPropertyOptional() age?: number;
+  @ApiProperty({ type: () => [EventSummaryDto] })
+  upcomingEvents!: EventSummaryDto[];
+}
+
 export class MyParticipationDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({

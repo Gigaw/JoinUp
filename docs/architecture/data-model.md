@@ -277,11 +277,15 @@ deadlock или transient serialization error API может повторить 
 | `Me` | email, display name, birth date, show-age setting, city, interests, onboarding status |
 | `PublicUser` | id, display name, avatar URL, bio, city, interests, optional calculated age |
 | `Participant` | id, display name, avatar URL, optional calculated age |
-| `Organizer` | поля `PublicUser` и ближайшие опубликованные события по отдельному запросу |
+| `Organizer` | `PublicUser` и до 10 ближайших будущих published events через `GET /v1/users/{userId}` |
 
 `birth_date` разрешена только в `Me`; transport serializer использует allowlist DTO, а не исключение
 полей из Prisma object. Даже `Me` не возвращает `password_hash`, session hashes и технические auth
 поля.
+
+Публичный профиль доступен только после завершения онбординга и не выдаёт историю participation,
+ожидающие или отменённые события. Отсутствующий и незавершённый профиль не различаются для клиента:
+оба случая возвращают `RESOURCE_NOT_FOUND`.
 
 Текстовое место встречи и список `going` участников доступны любому авторизованному пользователю,
 который может открыть событие. Pending applications доступны только организатору соответствующего

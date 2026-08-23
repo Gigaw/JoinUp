@@ -5,6 +5,7 @@ import type {
   ProfileRecord,
   ActivityRecord,
   ActivitiesTab,
+  PublicProfileRecord,
   UsersRepository,
 } from '../../application/users.repository';
 import {
@@ -36,6 +37,43 @@ export class PrismaUsersRepository implements UsersRepository {
       include: profileInclude,
     });
     return user ? this.map(user) : null;
+  }
+
+  async findPublicProfile(userId: string): Promise<PublicProfileRecord | null> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, onboardingCompletedAt: { not: null } },
+      include: {
+        ...profileInclude,
+        organizedEvents: {
+          where: {
+            status: EventStatus.published,
+            startsAt: { gt: new Date() },
+          },
+          include: activityInclude,
+          orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+          take: 10,
+        },
+      },
+    });
+    if (!user || !user.displayName) return null;
+    return {
+      profile: this.map(user),
+      upcomingEvents: user.organizedEvents.map((event) => ({
+        id: event.id,
+        category: event.category,
+        city: event.city,
+        title: event.title,
+        meetingPlace: event.meetingPlace,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        imageObjectKey: event.imageObjectKey,
+        participationMode: event.participationMode,
+        capacity: event.capacity,
+        status: event.status,
+        contentVersion: event.contentVersion,
+        participations: event.participations,
+      })),
+    };
   }
 
   async findActivities(
