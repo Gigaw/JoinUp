@@ -8,7 +8,7 @@ export default function AuthLayout() {
   if (token) return <Redirect href="/" />;
   return (
     <Stack>
-      <Stack.Screen name="sign-in" options={{ title: 'Вход' }} />
+      <Stack.Screen name="sign-in" options={{ headerShown: false }} />
       <Stack.Screen name="register" options={{ title: 'Регистрация' }} />
     </Stack>
   );

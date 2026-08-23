@@ -31,6 +31,10 @@ export default function AppLayout() {
           options={{ title: 'Активность' }}
         />
         <Stack.Screen
+          name="events/[eventId]/participants"
+          options={{ title: 'Участники' }}
+        />
+        <Stack.Screen
           name="events/create"
           options={{ title: 'Новая активность' }}
         />
@@ -39,6 +43,7 @@ export default function AppLayout() {
           options={{ title: 'Редактирование' }}
         />
         <Stack.Screen name="chats/[eventId]" options={{ title: 'Чат' }} />
+        <Stack.Screen name="users/[userId]" options={{ title: 'Профиль' }} />
       </Stack>
     </EventCatalogStateProvider>
   );

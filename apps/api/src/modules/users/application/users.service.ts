@@ -7,7 +7,9 @@ import {
 import type {
   ActivitiesListDto,
   ActivityItemDto,
+  EventSummaryDto,
   MeDto,
+  PublicUserDto,
 } from '../../../platform/http/api.dto';
 import { DomainError } from '../../../platform/http/domain.error';
 import { ProfileUpdateError, type ProfilePatch } from '../domain/profile';
@@ -16,6 +18,7 @@ import {
   type ProfileRecord,
   type ActivitiesTab,
   type ActivityRecord,
+  type PublicProfileRecord,
   type UsersRepository,
 } from './users.repository';
 
@@ -29,6 +32,29 @@ export class UsersService {
     const profile = await this.repository.findMe(userId);
     if (!profile) throw this.notFound();
     return this.present(profile);
+  }
+
+  async getPublicProfile(userId: string): Promise<PublicUserDto> {
+    const publicProfile = await this.repository.findPublicProfile(userId);
+    if (!publicProfile) throw this.notFound();
+    const { profile, upcomingEvents } = publicProfile;
+    const result: PublicUserDto = {
+      id: profile.id,
+      displayName: profile.displayName ?? 'Участник',
+      avatarUrl: profile.avatarObjectKey
+        ? `/v1/media/${profile.avatarObjectKey}`
+        : null,
+      bio: profile.bio,
+      city: profile.city,
+      interests: [...profile.interests]
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map(({ id, slug, name }) => ({ id, slug, name })),
+      upcomingEvents: upcomingEvents.map((event) =>
+        this.presentPublicEvent(event),
+      ),
+    };
+    if (profile.showAge) result.age = this.age(profile.birthDate);
+    return result;
   }
 
   async updateMe(userId: string, patch: ProfilePatch): Promise<MeDto> {
@@ -166,6 +192,42 @@ export class UsersService {
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     };
+  }
+
+  private presentPublicEvent(
+    event: PublicProfileRecord['upcomingEvents'][number],
+  ): EventSummaryDto {
+    const participantsCount = event.participations.filter(
+      (item) => item.status === ParticipationStatus.going,
+    ).length;
+    return {
+      id: event.id,
+      title: event.title,
+      category: event.category,
+      city: event.city,
+      meetingPlace: event.meetingPlace,
+      startsAt: event.startsAt.toISOString(),
+      endsAt: event.endsAt?.toISOString() ?? null,
+      imageUrl: event.imageObjectKey
+        ? `/v1/media/${event.imageObjectKey}`
+        : null,
+      participationMode: event.participationMode,
+      participantsCount,
+      capacity: event.capacity,
+      isFull: participantsCount >= event.capacity,
+      status: event.status,
+      contentVersion: event.contentVersion,
+    };
+  }
+
+  private age(birthDate: Date, now = new Date()): number {
+    let value = now.getUTCFullYear() - birthDate.getUTCFullYear();
+    const beforeBirthday =
+      now.getUTCMonth() < birthDate.getUTCMonth() ||
+      (now.getUTCMonth() === birthDate.getUTCMonth() &&
+        now.getUTCDate() < birthDate.getUTCDate());
+    if (beforeBirthday) value -= 1;
+    return value;
   }
 
   private notFound(): DomainError {

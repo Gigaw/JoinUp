@@ -206,8 +206,14 @@ hashes и session data отсутствуют.
 
 ### `GET /v1/users/{userId}`
 
-Возвращает `PublicUser` и ближайшие созданные published events. Требует authentication. Дата
-рождения отсутствует независимо от age visibility.
+Требует authentication и возвращает read-only `PublicUser`: `id`, `displayName`, nullable
+`avatarUrl`, nullable `bio`, nullable `city`, `interests`, optional calculated `age` и не более 10
+ближайших будущих `published` events в `upcomingEvents`. Поля каждого события соответствуют
+`EventSummary`; cancelled, private, pending и прошлые события не возвращаются.
+
+Endpoint доступен только для завершённого профиля с display name. Для отсутствующего или
+недоступного профиля возвращается `404 RESOURCE_NOT_FOUND`; response никогда не содержит
+`birthDate`, `email`, `showAge`, password/session data или историю participation.
 
 ### `GET /v1/cities`
 
