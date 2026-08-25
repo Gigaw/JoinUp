@@ -1,7 +1,15 @@
+import { access, mkdir } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { resolve } from 'node:path';
+
 export interface AppConfig {
   databaseUrl: string;
   port: number;
   sessionTtlDays: number;
+}
+
+export interface MediaConfig {
+  mediaRoot: string;
 }
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -20,4 +28,19 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   return { databaseUrl, port, sessionTtlDays };
+}
+
+export function readMediaConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): MediaConfig {
+  const value = env.MEDIA_ROOT?.trim();
+  if (!value) {
+    throw new Error('MEDIA_ROOT is required');
+  }
+  return { mediaRoot: resolve(value) };
+}
+
+export async function ensureMediaRoot(mediaRoot: string): Promise<void> {
+  await mkdir(mediaRoot, { recursive: true });
+  await access(mediaRoot, constants.R_OK | constants.W_OK);
 }

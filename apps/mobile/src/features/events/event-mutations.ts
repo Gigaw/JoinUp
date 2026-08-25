@@ -11,6 +11,12 @@ import {
 
 type EventDetails = components['schemas']['EventDetailsDto'];
 
+export type EventImageUpload = {
+  fileName: string;
+  mimeType: string;
+  uri: string;
+};
+
 export function useCreateEventMutation(actorId: string | undefined) {
   const client = useApiClient();
   const queryClient = useQueryClient();
@@ -30,7 +36,10 @@ export function useCreateEventMutation(actorId: string | undefined) {
         ['events', 'detail', event.id],
         event,
       );
-      await queryClient.invalidateQueries({ queryKey: ['events', 'list'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+      ]);
     },
   });
 }
@@ -56,7 +65,10 @@ export function useUpdateEventMutation(eventId: string) {
         ['events', 'detail', eventId],
         event,
       );
-      await queryClient.invalidateQueries({ queryKey: ['events', 'list'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+      ]);
     },
   });
 }
@@ -85,7 +97,55 @@ export function useCancelEventMutation(eventId: string) {
         ['events', 'detail', eventId],
         event,
       );
-      await queryClient.invalidateQueries({ queryKey: ['events', 'list'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+      ]);
+    },
+  });
+}
+
+export function useUploadEventImageMutation() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      image,
+    }: {
+      eventId: string;
+      image: EventImageUpload;
+    }) =>
+      runPendingMutation(
+        `events.image.replace:${eventId}`,
+        image,
+        async (key) => {
+          const body = new FormData();
+          body.append('image', {
+            uri: image.uri,
+            name: image.fileName,
+            type: image.mimeType,
+          } as never);
+          const result = await client.PUT('/v1/events/{eventId}/image', {
+            body: body as never,
+            params: {
+              header: { 'Idempotency-Key': key },
+              path: { eventId },
+            },
+          });
+          if (!result.data) throw toAppError(responseError(result));
+          return result.data;
+        },
+      ),
+    onSuccess: async (event) => {
+      queryClient.setQueryData<EventDetails>(
+        ['events', 'detail', event.id],
+        event,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+      ]);
     },
   });
 }

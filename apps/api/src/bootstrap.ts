@@ -1,4 +1,5 @@
 import { ValidationPipe } from '@nestjs/common';
+import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -7,6 +8,7 @@ import {
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './platform/http/api-exception.filter';
 import { RequestIdInterceptor } from './platform/http/request-id.interceptor';
+import { MAX_MEDIA_FILE_SIZE } from './platform/media/media-storage.port';
 
 export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -14,6 +16,10 @@ export async function createApp(): Promise<NestFastifyApplication> {
     new FastifyAdapter(),
     { logger: ['error', 'warn', 'log'] },
   );
+  await app.register(multipart, {
+    limits: { files: 1, parts: 1, fileSize: MAX_MEDIA_FILE_SIZE },
+    throwFileSizeLimit: true,
+  });
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(
     new ValidationPipe({

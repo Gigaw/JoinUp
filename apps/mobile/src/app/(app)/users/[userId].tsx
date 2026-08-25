@@ -13,6 +13,7 @@ import {
 import { EventCard } from '../../../features/events/ui/event-card';
 import { usePublicUser } from '../../../features/profile/use-public-user';
 import { getApiBaseUrl } from '../../../shared/api/config';
+import { useSession } from '../../../shared/session/session-context';
 import {
   colors,
   radius,
@@ -122,13 +123,17 @@ function ProfileAvatar({
   imageUrl?: string | null;
   name: string;
 }) {
+  const { token } = useSession();
   const [failed, setFailed] = useState(false);
   if (imageUrl && !failed) {
     return (
       <Image
         accessibilityLabel={`Аватар ${name}`}
         onError={() => setFailed(true)}
-        source={{ uri: resolveImageUrl(imageUrl) }}
+        source={{
+          uri: resolveImageUrl(imageUrl),
+          ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+        }}
         style={styles.avatarImage}
       />
     );

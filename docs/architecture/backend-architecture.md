@@ -206,6 +206,11 @@ Feature use case сначала проверяет actor/ownership, затем �
 работает только внутри `MEDIA_ROOT`, проверяет magic bytes, MIME, размер и dimensions, пишет во
 временный файл и выполняет atomic rename.
 
+`@fastify/multipart` ограничивает размер и число parts на transport boundary. Local adapter
+использует `sharp` для декодирования и нормализации JPEG, PNG и WebP: этим подтверждается
+фактический формат до записи, а application-layer не зависит от Fastify, файловой системы или
+image decoder.
+
 Filesystem и PostgreSQL не образуют общую транзакцию. Поэтому replace flow использует порядок:
 
 1. проверить и записать новый temporary file;

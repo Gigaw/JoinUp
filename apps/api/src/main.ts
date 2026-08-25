@@ -2,11 +2,17 @@ import 'reflect-metadata';
 import 'dotenv/config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createApp } from './bootstrap';
-import { readConfig } from './platform/config/app-config';
+import {
+  ensureMediaRoot,
+  readConfig,
+  readMediaConfig,
+} from './platform/config/app-config';
 import { createOpenApiDocument } from './platform/openapi/openapi';
 
 async function bootstrap(): Promise<void> {
   const config = readConfig();
+  const mediaConfig = readMediaConfig();
+  await ensureMediaRoot(mediaConfig.mediaRoot);
   const app = await createApp();
   const document = createOpenApiDocument(app);
   SwaggerModule.setup('openapi', app, document);

@@ -3,6 +3,7 @@ import { Image, type ImageStyle, type StyleProp } from 'react-native';
 import categoryGames from '../../../../assets/events/category-games.png';
 import categorySport from '../../../../assets/events/category-sport.png';
 import { getApiBaseUrl } from '../../../shared/api/config';
+import { useSession } from '../../../shared/session/session-context';
 
 const categoryImages: Record<string, number> = {
   games: categoryGames,
@@ -23,6 +24,7 @@ export function EventImage({
   style,
   accessibilityLabel,
 }: EventImageProps) {
+  const { token } = useSession();
   const [imageFailed, setImageFailed] = useState(false);
   const fallbackImage = getEventFallbackImage(categorySlug);
 
@@ -38,7 +40,12 @@ export function EventImage({
       onError={() => setImageFailed(true)}
       source={
         imageUrl && !imageFailed
-          ? { uri: resolveEventImageUrl(imageUrl) }
+          ? {
+              uri: resolveEventImageUrl(imageUrl),
+              ...(token
+                ? { headers: { Authorization: `Bearer ${token}` } }
+                : {}),
+            }
           : fallbackImage
       }
       style={style}
