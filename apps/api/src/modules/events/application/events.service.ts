@@ -18,6 +18,12 @@ import type {
 } from '../../../platform/http/api.dto';
 import { DomainError } from '../../../platform/http/domain.error';
 import {
+  MEDIA_STORAGE,
+  type MediaStorage,
+  type MediaUpload,
+  type ReadMedia,
+} from '../../../platform/media/media-storage.port';
+import {
   EVENT_LIST_REPOSITORY,
   type EventListRepository,
   InvalidEventCursorError,
@@ -48,6 +54,7 @@ export class EventsService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(EVENT_LIST_REPOSITORY)
     private readonly eventList: EventListRepository,
+    @Inject(MEDIA_STORAGE) private readonly media: MediaStorage,
   ) {}
 
   async create(
@@ -244,6 +251,120 @@ export class EventsService {
         return this.details(cancelled, actorId);
       },
     );
+  }
+
+  async replaceImage(
+    eventId: string,
+    actorId: string,
+    idempotencyKey: string | undefined,
+    input: MediaUpload,
+  ): Promise<EventDetailsDto> {
+    const key = this.idempotencyKey(idempotencyKey);
+    const operation = `events.image.replace:${eventId}`;
+    const request = {
+      eventId,
+      mimeType: input.mimeType.toLowerCase().trim(),
+      contentHash: createHash('sha256').update(input.data).digest('hex'),
+    };
+
+    const replay = await this.replay<EventDetailsDto>(
+      actorId,
+      operation,
+      key,
+      this.hash(request),
+    );
+    if (replay !== null) return replay;
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: eventInclude,
+    });
+    if (!event) this.notFound();
+    this.requireOrganizer(event, actorId);
+    this.requireMutable(event);
+
+    const stored = await this.media.store(input);
+    let previousKey: string | null = null;
+    try {
+      const updated = await this.idempotent(
+        actorId,
+        operation,
+        key,
+        request,
+        200,
+        async (transaction) => {
+          await this.lockEvent(transaction, eventId);
+          const current = await transaction.event.findUnique({
+            where: { id: eventId },
+            include: eventInclude,
+          });
+          if (!current) this.notFound();
+          this.requireOrganizer(current, actorId);
+          this.requireMutable(current);
+          previousKey = current.imageObjectKey;
+          const replacement = await transaction.event.update({
+            where: { id: eventId },
+            data: {
+              imageObjectKey: stored.key,
+              version: { increment: 1 },
+              contentVersion: { increment: 1 },
+            },
+            include: eventInclude,
+          });
+          return this.details(replacement, actorId);
+        },
+      );
+
+      if (updated.imageUrl !== `/v1/media/${stored.key}`) {
+        await this.removeStoredMedia(stored.key);
+      } else if (previousKey && previousKey !== stored.key) {
+        await this.removeStoredMedia(previousKey);
+      }
+      return updated;
+    } catch (error) {
+      await this.removeStoredMedia(stored.key);
+      throw error;
+    }
+  }
+
+  async removeImage(eventId: string, actorId: string): Promise<void> {
+    let previousKey: string | null = null;
+    await this.prisma.$transaction(async (transaction) => {
+      await this.lockEvent(transaction, eventId);
+      const current = await transaction.event.findUnique({
+        where: { id: eventId },
+        include: eventInclude,
+      });
+      if (!current) this.notFound();
+      this.requireOrganizer(current, actorId);
+      this.requireMutable(current);
+      previousKey = current.imageObjectKey;
+      if (!previousKey) return;
+      await transaction.event.update({
+        where: { id: eventId },
+        data: {
+          imageObjectKey: null,
+          version: { increment: 1 },
+          contentVersion: { increment: 1 },
+        },
+      });
+    });
+    if (previousKey) await this.removeStoredMedia(previousKey);
+  }
+
+  async readImage(mediaKey: string, actorId: string): Promise<ReadMedia> {
+    const event = await this.prisma.event.findFirst({
+      where: { imageObjectKey: mediaKey },
+      include: eventInclude,
+    });
+    if (!event || !this.canRead(event, actorId)) {
+      throw new DomainError(
+        404,
+        'RESOURCE_NOT_FOUND',
+        'Изображение не найдено.',
+      );
+    }
+    return this.media.read(mediaKey);
   }
 
   async list(
@@ -659,6 +780,10 @@ export class EventsService {
       }
       throw error;
     }
+  }
+
+  private async removeStoredMedia(key: string): Promise<void> {
+    await this.media.remove(key).catch(() => undefined);
   }
 
   private async replay<T>(

@@ -265,6 +265,12 @@ birth date, bearer token и raw image bytes туда не записываютс
 временный file URI с коротким сроком жизни. Реализация использует небольшой persistent key-value
 adapter; token по-прежнему хранится только в SecureStore.
 
+Для обложки активности mobile использует `expo-image-picker` только для выбора одного изображения
+из медиатеки, а `expo-image-manipulator` уменьшает его до допустимых размеров и сохраняет с
+контролируемым качеством до multipart upload. До отправки выбранная обложка показывается в
+компоненте выбора;
+исходный binary payload не хранится в form state или `PendingMutationStore`.
+
 ## 10. Mutations, retry и идемпотентность
 
 Для create/edit/cancel event и media upload mobile:
@@ -305,7 +311,10 @@ domain conflict — над основным действием. Server error cod
   optional image.
 
 Date/time picker показывает local city/user representation, а mapper отправляет unambiguous UTC
-timestamp. При редактировании event форма передаёт `expectedVersion` из загруженного detail.
+timestamp. В iOS event-форма показывает spinner picker в модальной нижней шторке: значение остаётся
+черновиком до «Готово», а закрытие шторки или «Отмена» не меняют поле. Android использует нативные
+последовательные диалоги выбора даты и времени. Для окончания minimum date/time равно началу
+активности. При редактировании event форма передаёт `expectedVersion` из загруженного detail.
 
 ## 12. Изображения
 
@@ -315,7 +324,7 @@ timestamp. При редактировании event форма передаёт
 - client ограничивает выбор до image, но backend повторно проверяет MIME/magic bytes;
 - Android pending picker result восстанавливается после уничтожения activity;
 - upload использует один idempotency key до окончательного результата;
-- до upload показывается preview и возможность отменить выбор;
+- до upload показывается выбранная обложка и возможность отменить выбор;
 - отсутствие изображения отображается категорийной заглушкой.
 
 Camera/media permissions не запрашиваются при старте. Permission denial имеет объяснение и путь

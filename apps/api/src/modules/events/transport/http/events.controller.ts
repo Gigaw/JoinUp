@@ -12,23 +12,29 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiHeader,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import type { FastifyRequest } from 'fastify';
 import {
   EventApplicationListDto,
   EventDetailsDto,
   EventListDto,
   JoinEventDto,
 } from '../../../../platform/http/api.dto';
+import { DomainError } from '../../../../platform/http/domain.error';
 import { EventsService } from '../../application/events.service';
 import {
   CurrentActor,
@@ -138,6 +144,46 @@ export class EventsController {
     return this.events.join(eventId, actor.userId);
   }
 
+  @Put(':eventId/image')
+  @ApiOperation({ operationId: 'replaceEventImage' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['image'],
+      properties: { image: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: EventDetailsDto })
+  async replaceImage(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentActor() actor: ActorContext,
+    @Req() request: FastifyRequest,
+  ): Promise<EventDetailsDto> {
+    const image = await readEventImage(request);
+    return this.events.replaceImage(
+      eventId,
+      actor.userId,
+      idempotencyKey,
+      image,
+    );
+  }
+
+  @Delete(':eventId/image')
+  @HttpCode(204)
+  @ApiOperation({ operationId: 'removeEventImage' })
+  @ApiParam({ name: 'eventId', format: 'uuid' })
+  @ApiNoContentResponse()
+  async removeImage(
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @CurrentActor() actor: ActorContext,
+  ): Promise<void> {
+    await this.events.removeImage(eventId, actor.userId);
+  }
+
   @Delete(':eventId/participation')
   @HttpCode(200)
   @ApiOperation({ operationId: 'leaveEvent' })
@@ -167,6 +213,38 @@ export class EventsController {
       participationId,
       actor.userId,
       input.decision,
+    );
+  }
+}
+
+async function readEventImage(request: FastifyRequest) {
+  try {
+    const file = await request.file();
+    if (!file) {
+      throw new Error('MISSING_IMAGE');
+    }
+    const data = await file.toBuffer();
+    if (file.fieldname !== 'image') {
+      throw new Error('MISSING_IMAGE');
+    }
+    return { data, mimeType: file.mimetype };
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'FST_REQ_FILE_TOO_LARGE'
+    ) {
+      throw new DomainError(
+        400,
+        'VALIDATION_ERROR',
+        'Размер изображения не должен превышать 5 MiB.',
+      );
+    }
+    throw new DomainError(
+      400,
+      'VALIDATION_ERROR',
+      'Передайте одно изображение в поле image.',
     );
   }
 }

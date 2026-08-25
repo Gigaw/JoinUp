@@ -50,7 +50,7 @@ describe('EventsService.list', () => {
         findMany: vi.fn().mockResolvedValue([event]),
       },
     };
-    const service = new EventsService(prisma as never, { list });
+    const service = new EventsService(prisma as never, { list }, {} as never);
 
     const result = await service.list(
       cityId,
