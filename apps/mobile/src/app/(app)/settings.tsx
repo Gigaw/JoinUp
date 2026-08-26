@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import {
   ActivityIndicator,
   Button,
-  Pressable,
   StyleSheet,
   Switch,
   Text,
@@ -12,14 +11,12 @@ import {
 import { AppError, responseError, toAppError } from '../../shared/api/error';
 import { useApiClient } from '../../shared/api/use-api-client';
 import { type Me, useMe } from '../../shared/profile/use-me';
-import { useSession } from '../../shared/session/session-context';
 import { colors, radius } from '../../shared/theme/tokens';
 
 export default function SettingsScreen() {
   const client = useApiClient();
   const queryClient = useQueryClient();
   const me = useMe();
-  const { logout } = useSession();
   const updateAgeVisibility = useMutation({
     mutationFn: async (showAge: boolean): Promise<Me> => {
       const result = await client.PATCH('/v1/me', { body: { showAge } });
@@ -66,13 +63,6 @@ export default function SettingsScreen() {
             : 'Не удалось сохранить настройку.'}
         </Text>
       ) : null}
-      <Pressable
-        style={styles.logout}
-        onPress={() => void logout()}
-        testID="settings-logout"
-      >
-        <Text style={styles.logoutText}>Выйти из аккаунта</Text>
-      </Pressable>
     </View>
   );
 }
@@ -98,14 +88,5 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 5 },
   title: { color: colors.text, fontSize: 16, fontWeight: '800' },
   subtitle: { color: colors.textMuted, lineHeight: 20 },
-  logout: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.medium,
-    borderWidth: 1,
-    padding: 16,
-  },
-  logoutText: { color: colors.danger, fontWeight: '700' },
   error: { color: colors.danger },
 });
