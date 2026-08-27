@@ -83,26 +83,44 @@ describe('my activities', () => {
       'approval_required',
     );
     const eventId = String(created.body.id);
+    const me = await request(app.getHttpServer())
+      .get('/v1/me')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(200);
+    expect(me.body).toMatchObject({ createdEventsCount: 1 });
+
     await request(app.getHttpServer())
       .put(`/v1/events/${eventId}/participation`)
       .set('Authorization', `Bearer ${applicant.token}`)
       .expect(200);
 
     const own = await request(app.getHttpServer())
-      .get('/v1/me/activities?tab=created')
+      .get('/v1/me/activities?scope=organizing')
       .set('Authorization', `Bearer ${organizer.token}`)
       .expect(200);
     expect(own.body.items).toEqual(expect.arrayContaining([expect.anything()]));
+    expect(own.body).toMatchObject({
+      totalCount: 1,
+      pendingIncomingApplicationsCount: 1,
+    });
     const ownActivity = (own.body.items as Array<Record<string, unknown>>).find(
       (item) => item.id === eventId,
     );
     expect(ownActivity).toMatchObject({
       pendingApplicationsCount: 1,
+      isOrganizer: true,
       availableActions: ['edit', 'cancel', 'reviewApplications'],
     });
 
+    const organizerPlans = await request(app.getHttpServer())
+      .get('/v1/me/activities?scope=plans')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(200);
+    expect(organizerPlans.body).toMatchObject({ totalCount: 0 });
+    expect(organizerPlans.body.items).toHaveLength(0);
+
     const applications = await request(app.getHttpServer())
-      .get('/v1/me/activities?tab=applications')
+      .get('/v1/me/applications')
       .set('Authorization', `Bearer ${applicant.token}`)
       .expect(200);
     const applicationActivity = (
@@ -110,8 +128,72 @@ describe('my activities', () => {
     ).find((item) => item.id === eventId);
     expect(applicationActivity).toMatchObject({
       myParticipation: { status: 'pending' },
+      isOrganizer: false,
       hasEventUpdates: false,
     });
+    expect(applications.body).toMatchObject({
+      totalCount: 1,
+      pendingOutgoingApplicationsCount: 1,
+      pendingIncomingApplicationsCount: 0,
+    });
     expect(JSON.stringify(applications.body)).not.toContain('birthDate');
+
+    const plansWhilePending = await request(app.getHttpServer())
+      .get('/v1/me/activities?scope=plans')
+      .set('Authorization', `Bearer ${applicant.token}`)
+      .expect(200);
+    expect(plansWhilePending.body.items).toHaveLength(0);
+    expect(plansWhilePending.body.pendingOutgoingApplicationsCount).toBe(1);
+
+    const repeatedApplications = await request(app.getHttpServer())
+      .get('/v1/me/applications')
+      .set('Authorization', `Bearer ${applicant.token}`)
+      .expect(200);
+    expect(repeatedApplications.body).toEqual(applications.body);
+
+    await request(app.getHttpServer())
+      .delete(`/v1/events/${eventId}/participation`)
+      .set('Authorization', `Bearer ${applicant.token}`)
+      .expect(200);
+
+    const archive = await request(app.getHttpServer())
+      .get('/v1/me/activities?scope=archive')
+      .set('Authorization', `Bearer ${applicant.token}`)
+      .expect(200);
+    expect(archive.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: eventId,
+          myParticipation: { status: 'withdrawn' },
+        }),
+      ]),
+    );
+
+    const organizerPlansArchive = await request(app.getHttpServer())
+      .get('/v1/me/activities?scope=archive')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(200);
+    expect(organizerPlansArchive.body.items).toHaveLength(0);
+
+    await request(app.getHttpServer())
+      .post(`/v1/events/${eventId}/cancel`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .set('Idempotency-Key', randomUUID())
+      .expect(200);
+
+    const organizerArchive = await request(app.getHttpServer())
+      .get('/v1/me/activities?scope=organizing_archive')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(200);
+    expect(organizerArchive.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: eventId, isOrganizer: true }),
+      ]),
+    );
+  });
+
+  it('requires authentication for plan and pending application scopes', async () => {
+    await request(app.getHttpServer()).get('/v1/me/activities').expect(401);
+    await request(app.getHttpServer()).get('/v1/me/applications').expect(401);
   });
 });

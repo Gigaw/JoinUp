@@ -4,7 +4,8 @@ import { PrismaService } from '../../../../platform/database/prisma.service';
 import type {
   ProfileRecord,
   ActivityRecord,
-  ActivitiesTab,
+  ActivitiesResult,
+  ActivitiesScope,
   PublicProfileRecord,
   UsersRepository,
 } from '../../application/users.repository';
@@ -15,6 +16,7 @@ import {
 } from '../../domain/profile';
 
 const profileInclude = Prisma.validator<Prisma.UserInclude>()({
+  _count: { select: { organizedEvents: true } },
   city: true,
   interests: { include: { category: true } },
 });
@@ -26,6 +28,10 @@ const activityInclude = Prisma.validator<Prisma.EventInclude>()({
   city: true,
   participations: true,
 });
+
+type PrismaActivity = Prisma.EventGetPayload<{
+  include: typeof activityInclude;
+}>;
 
 @Injectable()
 export class PrismaUsersRepository implements UsersRepository {
@@ -78,58 +84,162 @@ export class PrismaUsersRepository implements UsersRepository {
 
   async findActivities(
     userId: string,
-    tab: ActivitiesTab,
+    scope: ActivitiesScope,
     limit: number,
-  ): Promise<ActivityRecord[]> {
+  ): Promise<ActivitiesResult> {
     const now = new Date();
-    const relationship = { participations: { some: { userId } } };
+    const participantRelation: Prisma.EventWhereInput = {
+      organizerId: { not: userId },
+      participations: { some: { userId } },
+    };
+    const archiveConditions: Prisma.EventWhereInput = {
+      OR: [
+        {
+          status: {
+            in: [EventStatus.cancelled, EventStatus.completed],
+          },
+        },
+        { startsAt: { lte: now } },
+        {
+          participations: {
+            some: {
+              userId,
+              status: {
+                in: [
+                  ParticipationStatus.rejected,
+                  ParticipationStatus.withdrawn,
+                  ParticipationStatus.cancelled,
+                ],
+              },
+            },
+          },
+        },
+      ],
+    };
     const where: Prisma.EventWhereInput =
-      tab === 'upcoming'
+      scope === 'plans'
         ? {
+            organizerId: { not: userId },
             status: EventStatus.published,
             startsAt: { gt: now },
             participations: {
               some: { userId, status: ParticipationStatus.going },
             },
           }
-        : tab === 'applications'
+        : scope === 'organizing'
           ? {
-              participations: {
-                some: {
-                  userId,
-                  status: {
-                    in: [
-                      ParticipationStatus.pending,
-                      ParticipationStatus.going,
-                      ParticipationStatus.rejected,
-                      ParticipationStatus.withdrawn,
-                    ],
-                  },
-                },
-              },
+              organizerId: userId,
+              status: EventStatus.published,
+              startsAt: { gt: now },
             }
-          : tab === 'created'
-            ? { organizerId: userId, status: { not: EventStatus.cancelled } }
-            : tab === 'past'
-              ? {
-                  status: { not: EventStatus.cancelled },
-                  startsAt: { lte: now },
-                  OR: [{ organizerId: userId }, relationship],
-                }
-              : {
-                  status: EventStatus.cancelled,
-                  OR: [{ organizerId: userId }, relationship],
-                };
-    const events = await this.prisma.event.findMany({
-      where,
-      include: activityInclude,
-      orderBy: [
-        { startsAt: tab === 'past' || tab === 'cancelled' ? 'desc' : 'asc' },
-        { id: 'asc' },
-      ],
-      take: limit,
-    });
-    return events.map((event) => ({
+          : scope === 'organizing_archive'
+            ? {
+                organizerId: userId,
+                AND: [archiveConditions],
+              }
+            : { AND: [participantRelation, archiveConditions] };
+    const orderBy =
+      scope === 'archive' || scope === 'organizing_archive'
+        ? [{ startsAt: 'desc' as const }, { id: 'asc' as const }]
+        : [{ startsAt: 'asc' as const }, { id: 'asc' as const }];
+    const pendingOutgoingWhere: Prisma.EventParticipationWhereInput = {
+      userId,
+      status: ParticipationStatus.pending,
+      event: { status: EventStatus.published, startsAt: { gt: now } },
+    };
+    const pendingIncomingWhere: Prisma.EventParticipationWhereInput = {
+      status: ParticipationStatus.pending,
+      event: {
+        organizerId: userId,
+        status: EventStatus.published,
+        startsAt: { gt: now },
+      },
+    };
+    const [
+      totalCount,
+      pendingOutgoingApplicationsCount,
+      pendingIncomingApplicationsCount,
+      events,
+    ] = await this.prisma.$transaction([
+      this.prisma.event.count({ where }),
+      this.prisma.eventParticipation.count({
+        where: pendingOutgoingWhere,
+      }),
+      this.prisma.eventParticipation.count({
+        where: pendingIncomingWhere,
+      }),
+      this.prisma.event.findMany({
+        where,
+        include: activityInclude,
+        orderBy,
+        take: limit,
+      }),
+    ]);
+    return {
+      items: events.map((event) => this.mapActivity(event)),
+      totalCount,
+      pendingOutgoingApplicationsCount,
+      pendingIncomingApplicationsCount,
+    };
+  }
+
+  async findPendingApplications(
+    userId: string,
+    limit: number,
+  ): Promise<ActivitiesResult> {
+    const now = new Date();
+    const where: Prisma.EventWhereInput = {
+      participations: {
+        some: {
+          userId,
+          status: ParticipationStatus.pending,
+          event: { status: EventStatus.published, startsAt: { gt: now } },
+        },
+      },
+    };
+    const pendingOutgoingWhere: Prisma.EventParticipationWhereInput = {
+      userId,
+      status: ParticipationStatus.pending,
+      event: { status: EventStatus.published, startsAt: { gt: now } },
+    };
+    const pendingIncomingWhere: Prisma.EventParticipationWhereInput = {
+      status: ParticipationStatus.pending,
+      event: {
+        organizerId: userId,
+        status: EventStatus.published,
+        startsAt: { gt: now },
+      },
+    };
+    const [
+      totalCount,
+      pendingOutgoingApplicationsCount,
+      pendingIncomingApplicationsCount,
+      events,
+    ] = await this.prisma.$transaction([
+      this.prisma.event.count({ where }),
+      this.prisma.eventParticipation.count({
+        where: pendingOutgoingWhere,
+      }),
+      this.prisma.eventParticipation.count({
+        where: pendingIncomingWhere,
+      }),
+      this.prisma.event.findMany({
+        where,
+        include: activityInclude,
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: limit,
+      }),
+    ]);
+    return {
+      items: events.map((event) => this.mapActivity(event)),
+      totalCount,
+      pendingOutgoingApplicationsCount,
+      pendingIncomingApplicationsCount,
+    };
+  }
+
+  private mapActivity(event: PrismaActivity): ActivityRecord {
+    return {
       id: event.id,
       organizerId: event.organizerId,
       category: event.category,
@@ -144,7 +254,7 @@ export class PrismaUsersRepository implements UsersRepository {
       status: event.status,
       contentVersion: event.contentVersion,
       participations: event.participations,
-    }));
+    };
   }
 
   async updateProfile(
@@ -244,6 +354,7 @@ export class PrismaUsersRepository implements UsersRepository {
         name: category.name,
         sortOrder: category.sortOrder,
       })),
+      createdEventsCount: user._count.organizedEvents,
       onboardingCompletedAt: user.onboardingCompletedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

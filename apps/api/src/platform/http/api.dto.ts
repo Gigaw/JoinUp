@@ -39,6 +39,11 @@ export class MeDto {
   @ApiPropertyOptional({ nullable: true, type: String }) bio!: string | null;
   @ApiPropertyOptional({ nullable: true, type: CityDto }) city!: CityDto | null;
   @ApiProperty({ type: [CategoryDto] }) interests!: CategoryDto[];
+  @ApiProperty({
+    description: 'Количество созданных пользователем событий.',
+    minimum: 0,
+  })
+  createdEventsCount!: number;
   @ApiProperty() onboardingCompleted!: boolean;
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
   @ApiProperty({ format: 'date-time' }) updatedAt!: string;
@@ -91,7 +96,8 @@ export class EventSummaryDto {
   @ApiProperty() participantsCount!: number;
   @ApiProperty() capacity!: number;
   @ApiProperty() isFull!: boolean;
-  @ApiProperty({ enum: ['published', 'cancelled'] }) status!: string;
+  @ApiProperty({ enum: ['published', 'cancelled', 'completed'] })
+  status!: string;
   @ApiProperty() contentVersion!: number;
 }
 
@@ -116,6 +122,8 @@ export class EventListDto {
 export class ActivityItemDto extends EventSummaryDto {
   @ApiPropertyOptional({ type: MyParticipationDto, nullable: true })
   myParticipation!: MyParticipationDto | null;
+  @ApiProperty()
+  isOrganizer!: boolean;
   @ApiProperty() hasEventUpdates!: boolean;
   @ApiProperty({ type: [String] }) availableActions!: string[];
   @ApiPropertyOptional({ nullable: true, type: Number })
@@ -124,6 +132,18 @@ export class ActivityItemDto extends EventSummaryDto {
 
 export class ActivitiesListDto {
   @ApiProperty({ type: [ActivityItemDto] }) items!: ActivityItemDto[];
+  @ApiProperty({ description: 'Количество элементов в выбранном scope.' })
+  totalCount!: number;
+  @ApiProperty({
+    description: 'Количество собственных исходящих pending-заявок.',
+    minimum: 0,
+  })
+  pendingOutgoingApplicationsCount!: number;
+  @ApiProperty({
+    description: 'Количество pending-заявок на события текущего организатора.',
+    minimum: 0,
+  })
+  pendingIncomingApplicationsCount!: number;
   @ApiPropertyOptional({ nullable: true, type: String }) nextCursor!:
     string | null;
 }

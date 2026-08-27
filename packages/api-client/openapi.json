@@ -152,21 +152,59 @@
         "operationId": "getMyActivities",
         "parameters": [
           {
-            "name": "tab",
+            "name": "scope",
             "required": false,
             "in": "query",
             "schema": {
-              "default": "upcoming",
+              "default": "plans",
               "type": "string",
               "enum": [
-                "upcoming",
-                "applications",
-                "created",
-                "past",
-                "cancelled"
+                "plans",
+                "organizing",
+                "archive",
+                "organizing_archive"
               ]
             }
           },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivitiesListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
+    "/v1/me/applications": {
+      "get": {
+        "operationId": "getMyPendingApplications",
+        "parameters": [
           {
             "name": "limit",
             "required": false,
@@ -1243,6 +1281,11 @@
               "$ref": "#/components/schemas/CategoryDto"
             }
           },
+          "createdEventsCount": {
+            "type": "number",
+            "description": "Количество созданных пользователем событий.",
+            "minimum": 0
+          },
           "onboardingCompleted": {
             "type": "boolean"
           },
@@ -1261,6 +1304,7 @@
           "birthDate",
           "showAge",
           "interests",
+          "createdEventsCount",
           "onboardingCompleted",
           "createdAt",
           "updatedAt"
@@ -1349,7 +1393,8 @@
             "type": "string",
             "enum": [
               "published",
-              "cancelled"
+              "cancelled",
+              "completed"
             ]
           },
           "contentVersion": {
@@ -1363,6 +1408,9 @@
                 "$ref": "#/components/schemas/MyParticipationDto"
               }
             ]
+          },
+          "isOrganizer": {
+            "type": "boolean"
           },
           "hasEventUpdates": {
             "type": "boolean"
@@ -1391,6 +1439,7 @@
           "isFull",
           "status",
           "contentVersion",
+          "isOrganizer",
           "hasEventUpdates",
           "availableActions"
         ]
@@ -1404,13 +1453,30 @@
               "$ref": "#/components/schemas/ActivityItemDto"
             }
           },
+          "totalCount": {
+            "type": "number",
+            "description": "Количество элементов в выбранном scope."
+          },
+          "pendingOutgoingApplicationsCount": {
+            "type": "number",
+            "description": "Количество собственных исходящих pending-заявок.",
+            "minimum": 0
+          },
+          "pendingIncomingApplicationsCount": {
+            "type": "number",
+            "description": "Количество pending-заявок на события текущего организатора.",
+            "minimum": 0
+          },
           "nextCursor": {
             "type": "string",
             "nullable": true
           }
         },
         "required": [
-          "items"
+          "items",
+          "totalCount",
+          "pendingOutgoingApplicationsCount",
+          "pendingIncomingApplicationsCount"
         ]
       },
       "PatchMeDto": {
@@ -1495,7 +1561,8 @@
             "type": "string",
             "enum": [
               "published",
-              "cancelled"
+              "cancelled",
+              "completed"
             ]
           },
           "contentVersion": {
@@ -1841,7 +1908,8 @@
             "type": "string",
             "enum": [
               "published",
-              "cancelled"
+              "cancelled",
+              "completed"
             ]
           },
           "contentVersion": {

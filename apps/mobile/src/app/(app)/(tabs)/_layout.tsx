@@ -10,7 +10,8 @@ type TabBarIconProps = { color: ColorValue; focused: boolean; size: number };
 
 const icons: Record<string, { active: IoniconName; inactive: IoniconName }> = {
   home: { active: 'home', inactive: 'home-outline' },
-  activities: { active: 'calendar', inactive: 'calendar-outline' },
+  plans: { active: 'calendar', inactive: 'calendar-outline' },
+  organizing: { active: 'briefcase', inactive: 'briefcase-outline' },
   chats: { active: 'chatbubbles', inactive: 'chatbubbles-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
 };
@@ -44,10 +45,42 @@ export default function TabsLayout() {
         },
       })}
     >
-      <Tabs.Screen name="home" options={{ title: 'Главная' }} />
-      <Tabs.Screen name="activities" options={{ title: 'Мои' }} />
-      <Tabs.Screen name="chats" options={{ title: 'Чаты' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Профиль' }} />
+      <Tabs.Screen
+        name="home"
+        options={{
+          tabBarAccessibilityLabel: 'Вкладка Главная',
+          title: 'Главная',
+        }}
+      />
+      <Tabs.Screen
+        name="plans"
+        options={{
+          tabBarAccessibilityLabel: 'Вкладка Планы',
+          title: 'Планы',
+        }}
+      />
+      <Tabs.Screen
+        name="organizing"
+        options={{
+          tabBarAccessibilityLabel: 'Вкладка Организую',
+          title: 'Организую',
+        }}
+      />
+      <Tabs.Screen
+        name="chats"
+        options={{
+          tabBarAccessibilityLabel: 'Вкладка Чаты',
+          title: 'Чаты',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarAccessibilityLabel: 'Вкладка Профиль',
+          title: 'Профиль',
+        }}
+      />
+      <Tabs.Screen name="activities" options={{ href: null }} />
     </Tabs>
   );
 }

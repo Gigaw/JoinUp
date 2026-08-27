@@ -23,8 +23,16 @@ export default function AppLayout() {
         <Stack.Screen name="settings" options={{ title: 'Настройки' }} />
         <Stack.Screen name="events/index" options={{ title: 'Активности' }} />
         <Stack.Screen
-          name="activities/index"
-          options={{ title: 'Мои активности' }}
+          name="plans/archive"
+          options={{ headerShown: false, title: 'Архив' }}
+        />
+        <Stack.Screen
+          name="plans/applications"
+          options={{ headerShown: false, title: 'Заявки ждут решения' }}
+        />
+        <Stack.Screen
+          name="organizing/archive"
+          options={{ headerShown: false, title: 'Архив организатора' }}
         />
         <Stack.Screen
           name="events/[eventId]"

@@ -1,7 +1,7 @@
 # Архитектура Expo mobile application
 
 - **Статус:** Draft
-- **Дата:** 2026-08-07
+- **Дата:** 2026-08-26
 - **Связанная задача:** [#10](https://github.com/Gigaw/JoinUp/issues/10)
 
 ## 1. Назначение
@@ -91,9 +91,11 @@ Feature может импортировать `shared` и публичные exp
 
 ## 4. Навигация
 
-В текущем mobile MVP авторизованный пользователь видит четыре постоянные нижние вкладки:
-«Главная», «Мои», «Чаты» и «Профиль». Поиск и filters относятся к содержимому «Главной».
-Создание активности открывается действием внутри «Мои», а не занимает отдельный tab.
+В текущем mobile MVP авторизованный пользователь видит пять постоянных нижних вкладок:
+«Главная», «Планы», «Организую», «Чаты» и «Профиль». Поиск и filters относятся к содержимому
+«Главной». «Планы» отвечают только за будущие подтверждённые участия во внешних событиях, а
+«Организую» — за управление созданными событиями. Внутри «Планов» нет второго постоянного tab
+bar: pending-заявки и отдельный архив подключённых событий открываются вложенными экранами.
 
 «Чаты» — отдельный список event-scoped чатов; доступ к конкретному чату остаётся вложенным
 сценарием поверх tabs. Вкладки доступны только в authenticated состоянии.
@@ -112,10 +114,14 @@ src/app/
     (tabs)/
       _layout.tsx
       home.tsx         # Главная
-      activities.tsx   # Мои
+      plans.tsx        # Планы
+      organizing.tsx   # Организую
       chats.tsx        # Чаты
       profile.tsx      # Профиль
-    activities/index.tsx
+    plans/
+      archive.tsx
+      applications.tsx
+    organizing/archive.tsx
     chats/[eventId].tsx
     events/
       index.tsx
@@ -211,7 +217,8 @@ Query keys централизованы по feature и состоят толь�
 ['events', 'participants', eventId]
 ['users', 'public', userId]
 ['events', 'applications', eventId, normalizedFilters]
-['activities', tab, cursorFilters]
+['me', 'activities', scope]
+['me', 'applications', 'pending']
 ['users', 'public', userId]
 ```
 
@@ -233,11 +240,11 @@ Backoff имеет верхнюю границу, а UI всегда даёт я
 | Mutation | Обновить/инвалидировать |
 | --- | --- |
 | Profile update | `me`, собственная public user projection |
-| Create event | created activities, relevant event lists, new event detail |
-| Edit/cancel event | event detail, lists, created/participant activities |
-| Join/apply | event detail, event list capacity, upcoming/applications |
-| Withdraw/leave | event detail, lists, corresponding activities |
-| Approve/reject | event detail, applications, created activities, applicant activities |
+| Create event | `me`, organizing/plans, relevant event lists, new event detail |
+| Edit/cancel event | event detail, lists, organizing/plans/archive/applications |
+| Join/apply | event detail, event list capacity, plans/applications |
+| Withdraw/leave | event detail, plans/archive/applications, corresponding lists |
+| Approve/reject | event detail, event applications, organizing/plans/archive/applications |
 | Send event message | messages этого event, список чатов |
 | Avatar/event image | affected profile/event detail and visible cards |
 
@@ -252,7 +259,8 @@ Client state ограничен:
 - текущими filters и sort главного экрана;
 - выбранным городом каталога главного экрана;
 - незавершёнными form values;
-- выбранной вкладкой «Моих активностей»;
+- transient state вложенных экранов plans/organizing (архив и pending applications не являются
+  постоянными tabs);
 - transient UI state: modal, picker, accordion.
 
 Filters живут в route search params или feature context и сохраняются только в пределах текущей
@@ -403,7 +411,7 @@ React Native Testing Library проверяет поведение, доступ
 С mock API и in-memory storage проверяются:
 
 - restore session без flash auth screen;
-- anonymous → register/login → onboarding → four tabs;
+- anonymous → register/login → onboarding → five tabs;
 - `401` → очистка приватного cache → sign-in;
 - deep link event после authentication;
 - create/join/apply/withdraw/approve flows и query invalidation.

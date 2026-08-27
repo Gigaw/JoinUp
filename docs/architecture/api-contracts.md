@@ -1,7 +1,7 @@
 # API-контракты первого рабочего каркаса
 
 - **Статус:** Draft
-- **Дата:** 2026-08-03
+- **Дата:** 2026-08-26
 - **Связанная задача:** [#9](https://github.com/Gigaw/JoinUp/issues/9)
 
 ## 1. Общие правила
@@ -181,8 +181,10 @@ SecureStore.
 ### `GET /v1/me`
 
 Возвращает собственную проекцию: `id`, `email`, `birthDate`, `displayName`, `showAge`, nullable
-`avatarUrl`, nullable `bio`, nullable `city`, `interests`, `onboardingCompleted`, timestamps. Auth
-hashes и session data отсутствуют.
+`avatarUrl`, nullable `bio`, nullable `city`, `interests`, `createdEventsCount`,
+`onboardingCompleted`, timestamps. Auth hashes и session data отсутствуют. `createdEventsCount` —
+server-side count всех созданных пользователем событий и используется только для краткой сводки
+в профиле; полный рабочий список находится во вкладке «Организую».
 
 ### `PATCH /v1/me`
 
@@ -423,27 +425,36 @@ Response `200` возвращает terminal participation. Повтор withdra
 `seen_event_version` до `min(requestedVersion, currentEventVersion)`. Endpoint идемпотентен и
 позволяет убрать отметку об изменении события без notification module.
 
-## 9. «Мои активности»
+## 9. Планы, организаторские активности и архив
 
 ### `GET /v1/me/activities`
 
 Query:
 
-- `tab=upcoming|applications|created|past|cancelled`;
-- `cursor`;
+- `scope=plans|organizing|archive|organizing_archive`;
 - `limit` с default 20 и maximum 50.
 
-| Tab | Состав |
+| Scope | Состав |
 | --- | --- |
-| `upcoming` | Будущие events с собственной participation `going` |
-| `applications` | Events со всеми статусами собственных заявок |
-| `created` | Events с `organizerId = me`, включая `pendingApplicationsCount` |
-| `past` | Начавшиеся или завершённые events с отношением пользователя |
-| `cancelled` | Cancelled events, созданные пользователем или с его participation |
+| `plans` | Будущие опубликованные events, к которым пользователь присоединился со статусом `going`; собственные организованные events исключены |
+| `organizing` | Будущие опубликованные events, где `organizerId = me`, с `pendingApplicationsCount` |
+| `archive` | Прошедшие, завершённые, отменённые events и terminal participation (`rejected`, `withdrawn`, `cancelled`) только во внешних events, к которым пользователь подключался |
+| `organizing_archive` | Прошедшие, завершённые и отменённые events, где `organizerId = me` |
 
-Элемент списка содержит `EventSummary`, собственную participation, `hasEventUpdates` и доступные
-действия. Pending application count означает количество необработанных `pending`, а не отдельный
-unread notification state.
+Элемент списка содержит `EventSummary`, собственную participation, `isOrganizer`, `hasEventUpdates`
+и доступные действия. `pendingApplicationsCount` на элементе означает количество необработанных
+входящих `pending` заявок для организатора, а не отдельное unread notification state.
+Ответ также содержит `totalCount`, `pendingOutgoingApplicationsCount` — количество исходящих
+заявок текущего пользователя со статусом `pending`, — и `pendingIncomingApplicationsCount` —
+количество pending-заявок на события текущего организатора. Эти значения вычисляются backend,
+mobile не фильтрует terminal statuses самостоятельно.
+
+### `GET /v1/me/applications`
+
+Возвращает отдельный список только собственных исходящих заявок со статусом `pending`. Элементы
+используют тот же event summary и `availableActions`, поэтому mobile может предложить действие
+«Отозвать заявку» через существующий `DELETE /v1/events/{eventId}/participation`. Endpoint требует
+аутентификацию и не выдаёт входящие заявки организатора.
 
 ## 10. Чаты
 

@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMyActivities } from '../../../features/activities/activity-queries';
 import { calculateAge, formatAge } from '../../../features/profile/age';
 import { getApiBaseUrl } from '../../../shared/api/config';
 import { useMe } from '../../../shared/profile/use-me';
@@ -42,7 +41,6 @@ const categoryIcons: Record<string, IoniconName> = {
 
 export default function ProfileScreen() {
   const me = useMe();
-  const createdActivities = useMyActivities('created');
   const { logout, token } = useSession();
 
   if (me.isLoading) return <ActivityIndicator style={styles.center} />;
@@ -59,7 +57,6 @@ export default function ProfileScreen() {
   const initial = (me.data.displayName?.trim() || me.data.email)
     .slice(0, 1)
     .toUpperCase();
-  const createdCount = createdActivities.data?.items.length;
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
@@ -68,9 +65,9 @@ export default function ProfileScreen() {
           <RefreshControl
             colors={[colors.primary]}
             onRefresh={() => {
-              void Promise.all([me.refetch(), createdActivities.refetch()]);
+              void me.refetch();
             }}
-            refreshing={me.isRefetching || createdActivities.isRefetching}
+            refreshing={me.isRefetching}
             tintColor={colors.primary}
           />
         }
@@ -135,19 +132,45 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <View
+          style={styles.organizerSummary}
+          testID="profile-organizer-summary"
+        >
+          <View style={styles.organizerSummaryCopy}>
+            <Text style={styles.sectionTitle}>Организатор</Text>
+            <Text style={styles.summaryLabel}>Создано активностей</Text>
+            <Text style={styles.summaryCount}>
+              {me.data.createdEventsCount}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Открыть организаторские активности"
+            accessibilityRole="button"
+            onPress={() => router.push('/organizing')}
+            style={({ pressed }) => [
+              styles.organizerSummaryAction,
+              pressed && styles.pressed,
+            ]}
+            testID="profile-organizer-summary-open"
+          >
+            <Text style={styles.organizerSummaryActionText}>
+              Открыть организаторские активности
+            </Text>
+            <Ionicons
+              accessible={false}
+              color={colors.primary}
+              name="chevron-forward"
+              size={22}
+            />
+          </Pressable>
+        </View>
+
         <View style={styles.menuCard} testID="profile-menu">
           <MenuRow
             icon="person-outline"
             label="Редактировать профиль"
             onPress={() => router.push('/profile/edit')}
             testID="profile-menu-edit"
-          />
-          <MenuRow
-            icon="calendar-outline"
-            label="Мои активности"
-            meta={createdCount === undefined ? undefined : String(createdCount)}
-            onPress={() => router.push('/activities')}
-            testID="profile-menu-activities"
           />
           <MenuRow
             icon="lock-closed-outline"
@@ -340,6 +363,26 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   sectionMeta: { color: colors.textMuted, fontSize: 13 },
+  organizerSummary: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.large,
+    gap: spacing.lg,
+    padding: spacing.lg,
+  },
+  organizerSummaryCopy: { gap: spacing.xs },
+  summaryLabel: { color: colors.textMuted, fontSize: 15 },
+  summaryCount: { color: colors.primaryDark, fontSize: 32, fontWeight: '800' },
+  organizerSummaryAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+    minHeight: touchTarget,
+  },
+  organizerSummaryActionText: {
+    color: colors.primaryDark,
+    flex: 1,
+    fontWeight: '800',
+  },
   interests: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   interestChip: {
     alignItems: 'center',

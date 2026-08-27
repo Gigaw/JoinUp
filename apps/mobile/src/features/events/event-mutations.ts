@@ -39,6 +39,8 @@ export function useCreateEventMutation(actorId: string | undefined) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
         queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
+        queryClient.invalidateQueries({ queryKey: ['me'] }),
       ]);
     },
   });
@@ -68,6 +70,7 @@ export function useUpdateEventMutation(eventId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
         queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
@@ -100,6 +103,7 @@ export function useCancelEventMutation(eventId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
         queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
@@ -145,6 +149,7 @@ export function useUploadEventImageMutation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
         queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
@@ -167,6 +172,8 @@ export function useJoinEventMutation(eventId: string) {
           queryKey: ['events', 'detail', eventId],
         }),
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
@@ -189,6 +196,8 @@ export function useLeaveEventMutation(eventId: string) {
           queryKey: ['events', 'detail', eventId],
         }),
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
@@ -224,6 +233,8 @@ export function useDecideEventApplicationMutation(eventId: string) {
           queryKey: ['events', 'applications', eventId],
         }),
         queryClient.invalidateQueries({ queryKey: ['events', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'activities'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'applications'] }),
       ]);
     },
   });
