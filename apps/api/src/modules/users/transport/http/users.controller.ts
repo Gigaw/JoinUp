@@ -29,6 +29,7 @@ import { SessionGuard } from '../../../auth/transport/http/session.guard';
 import { UsersService } from '../../application/users.service';
 import { PatchMeDto } from './profile.dto';
 import { ActivitiesQueryDto } from './activities-query.dto';
+import { MyApplicationsQueryDto } from './my-applications-query.dto';
 
 @ApiTags('profile')
 @ApiBearerAuth()
@@ -51,7 +52,17 @@ export class UsersController {
     @CurrentActor() actor: ActorContext,
     @Query() query: ActivitiesQueryDto,
   ): Promise<ActivitiesListDto> {
-    return this.users.getActivities(actor.userId, query.tab, query.limit);
+    return this.users.getActivities(actor.userId, query.scope, query.limit);
+  }
+
+  @Get('applications')
+  @ApiOperation({ operationId: 'getMyPendingApplications' })
+  @ApiOkResponse({ type: ActivitiesListDto })
+  getPendingApplications(
+    @CurrentActor() actor: ActorContext,
+    @Query() query: MyApplicationsQueryDto,
+  ): Promise<ActivitiesListDto> {
+    return this.users.getPendingApplications(actor.userId, query.limit);
   }
 
   @Patch()

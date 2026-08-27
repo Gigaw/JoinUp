@@ -290,7 +290,7 @@ path редактируются до записи.
 
 Configuration schema валидируется до запуска. Минимальные группы:
 
-- HTTP host/port и environment;
+- HTTP host/port, разрешённые browser origins и environment;
 - PostgreSQL connection;
 - session lifetime и token hashing secret/parameters;
 - product age-policy time zone;

@@ -169,7 +169,8 @@ optimistic feedback, но после mutation обязан заменить ег
 - переходы participation идемпотентны по текущему состоянию и уникальному ограничению;
 - транзакции не включают внешние сетевые вызовы;
 - списки используют cursor pagination и ограниченный максимальный размер страницы;
-- API имеет отдельные liveness и readiness проверки; readiness проверяет доступность PostgreSQL;
+- API имеет отдельные liveness и readiness проверки; readiness проверяет доступность PostgreSQL и
+  writable `MEDIA_ROOT`;
 - schema migration выполняется отдельным deployment-шагом до переключения API на новую версию.
 
 Полноценный offline-first режим, фоновые очереди и автоматические повторные попытки backend не
@@ -201,9 +202,10 @@ optimistic feedback, но после mutation обязан заменить ег
 - liveness/readiness endpoints;
 - фиксацию необработанных исключений и критических mobile-ошибок.
 
-Конкретный внешний error-monitoring и hosting provider не выбираются этим документом. Их
-подключение является отдельным инфраструктурным решением и требует ADR. До выбора провайдера API
-пишет структурированные логи в standard output.
+Для технического окружения из [ADR 0009](../adr/0009-single-vps-test-deployment.md) выбран один
+существующий VPS, Docker Compose и Caddy. Оно предназначено только для тестовых данных и не
+заменяет выбор постоянного hosting provider, внешнего error-monitoring или backup перед публичным
+пилотом. До выбора внешнего monitoring API пишет логи в standard output.
 
 ## 9. CI/CD и окружения
 
@@ -218,7 +220,8 @@ optimistic feedback, но после mutation обязан заменить ег
 
 Предусматриваются локальное, test и production-like окружения. Значения конфигурации валидируются
 при старте. Production credentials и реальные пользовательские данные не используются локально и
-в CI. Выбор hosting и mobile distribution provider фиксируется до первого deployment отдельным ADR.
+в CI. Тестовый deployment на одном VPS зафиксирован в ADR 0009; постоянный hosting, backup и
+mobile distribution provider фиксируются отдельными решениями до публичного пилота.
 
 ## 10. Точки расширения
 

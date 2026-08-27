@@ -25,7 +25,11 @@ type CityPickerSheetProps = {
   onClose: () => void;
   onRetry: () => void;
   onSelect: (cityId: string) => void;
+  optionTestIDPrefix?: string;
   selectedCityId?: string;
+  snapPoints?: (string | number)[];
+  subtitle?: string;
+  testID?: string;
 };
 
 export function CityPickerSheet({
@@ -36,18 +40,21 @@ export function CityPickerSheet({
   onClose,
   onRetry,
   onSelect,
+  optionTestIDPrefix = 'city-option',
   selectedCityId,
+  snapPoints,
+  subtitle = 'Город влияет только на список активностей в каталоге.',
+  testID = 'city-picker-sheet',
 }: CityPickerSheetProps) {
   return (
     <AppBottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      testID="city-picker-sheet"
+      snapPoints={snapPoints}
+      testID={testID}
     >
       <Text style={styles.title}>Выберите город</Text>
-      <Text style={styles.subtitle}>
-        Город влияет только на список активностей в каталоге.
-      </Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
 
       {isLoading ? (
         <View style={styles.state}>
@@ -83,7 +90,7 @@ export function CityPickerSheet({
                   selected && styles.cityOptionSelected,
                   pressed && styles.pressed,
                 ]}
-                testID={`city-option-${city.slug}`}
+                testID={`${optionTestIDPrefix}-${city.slug}`}
               >
                 <Ionicons
                   accessible={false}

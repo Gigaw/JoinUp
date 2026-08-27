@@ -16,7 +16,7 @@ import { ProfileUpdateError, type ProfilePatch } from '../domain/profile';
 import {
   USERS_REPOSITORY,
   type ProfileRecord,
-  type ActivitiesTab,
+  type ActivitiesScope,
   type ActivityRecord,
   type PublicProfileRecord,
   type UsersRepository,
@@ -92,14 +92,46 @@ export class UsersService {
 
   async getActivities(
     userId: string,
-    tab: ActivitiesTab,
+    scope: ActivitiesScope,
     limit: number,
   ): Promise<ActivitiesListDto> {
-    const activities = await this.repository.findActivities(userId, tab, limit);
+    const activities = await this.repository.findActivities(
+      userId,
+      scope,
+      limit,
+    );
+    return this.presentActivities(activities, userId);
+  }
+
+  async getPendingApplications(
+    userId: string,
+    limit: number,
+  ): Promise<ActivitiesListDto> {
+    const activities = await this.repository.findPendingApplications(
+      userId,
+      limit,
+    );
+    return this.presentActivities(activities, userId);
+  }
+
+  private presentActivities(
+    activities: {
+      items: ActivityRecord[];
+      totalCount: number;
+      pendingOutgoingApplicationsCount: number;
+      pendingIncomingApplicationsCount: number;
+    },
+    userId: string,
+  ): ActivitiesListDto {
     return {
-      items: activities.map((activity) =>
+      items: activities.items.map((activity) =>
         this.presentActivity(activity, userId),
       ),
+      totalCount: activities.totalCount,
+      pendingOutgoingApplicationsCount:
+        activities.pendingOutgoingApplicationsCount,
+      pendingIncomingApplicationsCount:
+        activities.pendingIncomingApplicationsCount,
       nextCursor: null,
     };
   }
@@ -153,6 +185,7 @@ export class UsersService {
       isFull: participantsCount >= activity.capacity,
       status: activity.status,
       contentVersion: activity.contentVersion,
+      isOrganizer: activity.organizerId === userId,
       myParticipation: own
         ? {
             id: own.id,
@@ -188,6 +221,7 @@ export class UsersService {
       interests: [...profile.interests]
         .sort((left, right) => left.sortOrder - right.sortOrder)
         .map(({ id, slug, name }) => ({ id, slug, name })),
+      createdEventsCount: profile.createdEventsCount,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),

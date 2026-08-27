@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node --env-file-if-exists=.env --import tsx prisma/seed.ts",
+    "db:seed:catalog": "node --env-file-if-exists=.env --import tsx prisma/seed-catalog.ts",
     "openapi:export": "nest build && node dist/platform/openapi/export-openapi.js"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "argon2": "^0.44.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "dotenv": "^17.2.1",
     "fastify": "5.10.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -36,9 +38,9 @@
     "@nestjs/testing": "^11.1.6",
     "@types/node": "^22.17.2",
     "@types/supertest": "^6.0.3",
-    "dotenv": "^17.2.1",
     "prisma": "^6.15.0",
     "supertest": "^7.1.4",
+    "typescript": "^5.9.2",
     "tsx": "^4.20.3",
     "vitest": "^3.2.4"
   }

@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyPendingApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/{userId}": {
         parameters: {
             query?: never;
@@ -388,6 +404,8 @@ export interface components {
             bio?: string | null;
             city?: components["schemas"]["CityDto"] | null;
             interests: components["schemas"]["CategoryDto"][];
+            /** @description Количество созданных пользователем событий. */
+            createdEventsCount: number;
             onboardingCompleted: boolean;
             /** Format: date-time */
             createdAt: string;
@@ -420,15 +438,22 @@ export interface components {
             capacity: number;
             isFull: boolean;
             /** @enum {string} */
-            status: "published" | "cancelled";
+            status: "published" | "cancelled" | "completed";
             contentVersion: number;
             myParticipation?: components["schemas"]["MyParticipationDto"] | null;
+            isOrganizer: boolean;
             hasEventUpdates: boolean;
             availableActions: string[];
             pendingApplicationsCount?: number | null;
         };
         ActivitiesListDto: {
             items: components["schemas"]["ActivityItemDto"][];
+            /** @description Количество элементов в выбранном scope. */
+            totalCount: number;
+            /** @description Количество собственных исходящих pending-заявок. */
+            pendingOutgoingApplicationsCount: number;
+            /** @description Количество pending-заявок на события текущего организатора. */
+            pendingIncomingApplicationsCount: number;
             nextCursor?: string | null;
         };
         PatchMeDto: {
@@ -457,7 +482,7 @@ export interface components {
             capacity: number;
             isFull: boolean;
             /** @enum {string} */
-            status: "published" | "cancelled";
+            status: "published" | "cancelled" | "completed";
             contentVersion: number;
         };
         PublicUserDto: {
@@ -552,7 +577,7 @@ export interface components {
             capacity: number;
             isFull: boolean;
             /** @enum {string} */
-            status: "published" | "cancelled";
+            status: "published" | "cancelled" | "completed";
             contentVersion: number;
             description: string;
             organizer: components["schemas"]["ParticipantDto"];
@@ -727,7 +752,28 @@ export interface operations {
     getMyActivities: {
         parameters: {
             query?: {
-                tab?: "upcoming" | "applications" | "created" | "past" | "cancelled";
+                scope?: "plans" | "organizing" | "archive" | "organizing_archive";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitiesListDto"];
+                };
+            };
+        };
+    };
+    getMyPendingApplications: {
+        parameters: {
+            query?: {
                 limit?: number;
             };
             header?: never;

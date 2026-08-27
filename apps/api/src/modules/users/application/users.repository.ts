@@ -29,13 +29,21 @@ export interface ProfileRecord {
   bio: string | null;
   city: ProfileCity | null;
   interests: ProfileCategory[];
+  createdEventsCount: number;
   onboardingCompletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type ActivitiesTab =
-  'upcoming' | 'applications' | 'created' | 'past' | 'cancelled';
+export type ActivitiesScope =
+  'plans' | 'organizing' | 'archive' | 'organizing_archive';
+
+export interface ActivitiesResult {
+  items: ActivityRecord[];
+  totalCount: number;
+  pendingOutgoingApplicationsCount: number;
+  pendingIncomingApplicationsCount: number;
+}
 
 export interface ActivityRecord {
   id: string;
@@ -85,8 +93,12 @@ export interface UsersRepository {
   findPublicProfile(userId: string): Promise<PublicProfileRecord | null>;
   findActivities(
     userId: string,
-    tab: ActivitiesTab,
+    scope: ActivitiesScope,
     limit: number,
-  ): Promise<ActivityRecord[]>;
+  ): Promise<ActivitiesResult>;
+  findPendingApplications(
+    userId: string,
+    limit: number,
+  ): Promise<ActivitiesResult>;
   updateProfile(userId: string, patch: ProfilePatch): Promise<ProfileRecord>;
 }
