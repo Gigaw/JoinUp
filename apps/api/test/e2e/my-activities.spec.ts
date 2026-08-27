@@ -160,11 +160,14 @@ describe('my activities', () => {
       .get('/v1/me/activities?scope=archive')
       .set('Authorization', `Bearer ${applicant.token}`)
       .expect(200);
+    const withdrawnParticipationMatcher: unknown = expect.objectContaining({
+      status: 'withdrawn',
+    });
     expect(archive.body.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: eventId,
-          myParticipation: expect.objectContaining({ status: 'withdrawn' }),
+          myParticipation: withdrawnParticipationMatcher,
         }),
       ]),
     );
