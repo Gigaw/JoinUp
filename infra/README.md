@@ -45,7 +45,35 @@ docker compose --env-file .env.test -f compose.test.yml ps
 curl --fail --show-error https://31-128-42-29.sslip.io/v1/health/ready
 ```
 
-## Обновление и остановка
+## Автоматическое обновление из main
+
+После настройки по [Issue #53](https://github.com/Gigaw/JoinUp/issues/53) и
+[ADR 0010](../docs/adr/0010-automated-test-vps-deployment.md) успешный CI после merge в main
+автоматически разворачивает точный commit на VPS. Pull request, неуспешный CI и ручной запуск с
+другой ветки не получают доступ к серверу.
+
+На GitHub должны существовать следующие repository secrets:
+
+- VPS_DEPLOY_HOST — IP или hostname VPS;
+- VPS_DEPLOY_USER — vmeste-deploy;
+- VPS_DEPLOY_SSH_KEY — private key только для GitHub Actions → VPS;
+- VPS_DEPLOY_KNOWN_HOSTS — проверенная SSH host key VPS.
+
+VPS хранит отдельный read-only GitHub Deploy Key для fetch repository. Он намеренно используется
+и при public-репозитории, чтобы будущий перевод в private не требовал менять серверный доступ. Не
+выполняйте обычный git pull под root: это обходит проверку CI и порядок migration. Для диагностики
+рабочей копии используйте:
+
+```bash
+sudo -iu vmeste-deploy git -C /opt/vmeste status --branch --short
+```
+
+Файлы infra/server являются исходными версиями security boundary VPS: root-owned deploy script,
+SSH Match-конфигурации и GitHub known hosts. Изменение этих файлов требует отдельной ручной
+установки с проверкой SSH-конфигурации; обычный merge намеренно не может изменить этот уровень
+доступа.
+
+## Ручное обновление и остановка
 
 Перед обновлением новой версии повторите migration, затем замените API-контейнер. `down` сохраняет
 данные PostgreSQL и media; `down -v` удаляет тестовые данные без возможности восстановления.

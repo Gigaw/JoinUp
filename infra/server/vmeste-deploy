@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -Eeo pipefail
+
+readonly repository_dir='/opt/vmeste'
+readonly compose_dir="$repository_dir/infra"
+readonly compose_file='compose.test.yml'
+readonly lock_dir="$HOME/.cache/vmeste-deploy"
+readonly lock_file="$lock_dir/deploy.lock"
+
+fail() {
+  printf >&2 'vmeste deploy: %s\n' "$*"
+  exit 1
+}
+
+requested_command="$SSH_ORIGINAL_COMMAND"
+
+if [[ -n "$requested_command" ]]; then
+  case "$requested_command" in
+    'deploy '*)
+      commit="${requested_command#deploy }"
+      ;;
+    *)
+      fail 'expected the SSH command: deploy <40-character commit SHA>'
+      ;;
+  esac
+else
+  [[ "$#" -eq 2 && "$1" == 'deploy' ]] ||
+    fail 'expected local arguments: deploy <40-character commit SHA>'
+  commit="$2"
+fi
+
+[[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail 'commit must be a lowercase 40-character SHA'
+
+install -d -m 700 "$lock_dir"
+exec 9>"$lock_file"
+flock -n 9 || fail 'another deployment is already running'
+
+cd "$repository_dir"
+
+[[ -z "$(git status --porcelain --untracked-files=all)" ]] ||
+  fail 'the working tree is not clean; refusing to overwrite local changes'
+
+git fetch --no-tags origin main
+remote_commit="$(git rev-parse origin/main)"
+[[ "$remote_commit" == "$commit" ]] ||
+  fail "origin/main is $remote_commit, but the workflow requested $commit"
+[[ "$(git branch --show-current)" == 'main' ]] ||
+  fail 'the repository must be checked out on main'
+
+git merge --ff-only "$commit"
+[[ "$(git rev-parse HEAD)" == "$commit" ]] ||
+  fail 'HEAD does not match the requested commit after the fast-forward'
+
+cd "$compose_dir"
+docker compose --env-file .env.test -f "$compose_file" config --quiet
+docker compose --env-file .env.test -f "$compose_file" --profile ops run --rm --build migrate
+docker compose --env-file .env.test -f "$compose_file" \
+  up -d --build --force-recreate media-init api caddy
+
+set -a
+. ./.env.test
+set +a
+
+curl \
+  --fail \
+  --silent \
+  --show-error \
+  --retry 12 \
+  --retry-connrefused \
+  --retry-delay 5 \
+  --max-time 20 \
+  "https://$API_HOST/v1/health/ready"
+
+printf '\nDeployed %s successfully.\n' "$commit"

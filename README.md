@@ -208,6 +208,13 @@ Caddy, PostgreSQL и local persistent media volume. Временный HTTPS-hos
 технических тестов; до публичного пилота нужны постоянный домен, независимые backup, rate limiting
 auth-endpoints и safety-возможности из PRD.
 
+После настройки из [#53](https://github.com/Gigaw/JoinUp/issues/53) успешный CI для merge в main
+автоматически обновляет test VPS по [ADR 0010](docs/adr/0010-automated-test-vps-deployment.md).
+Пока репозиторий public, standard GitHub-hosted runners не расходуют включённые минуты GitHub
+Actions. Безопасность VPS от этого не зависит: runtime-конфигурация и ключи развёртывания в Git не
+хранятся, а сервер принимает только ограниченную команду deploy. Перед переводом репозитория в
+private менять VPS-доступ не потребуется.
+
 ## Поддержка платформ
 
 | Платформа | Статус                                                            |
