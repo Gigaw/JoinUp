@@ -1,0 +1,45 @@
+FROM node:22-bookworm-slim AS base
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends --yes openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable
+
+FROM base AS build
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY packages/config/package.json packages/config/package.json
+
+RUN pnpm install --frozen-lockfile --filter @vmeste/api...
+
+COPY apps/api apps/api
+COPY packages/config packages/config
+
+RUN pnpm --filter @vmeste/api db:generate
+RUN pnpm --filter @vmeste/api build
+
+FROM build AS migration
+
+CMD ["pnpm", "--filter", "@vmeste/api", "exec", "prisma", "migrate", "deploy"]
+
+FROM base AS runtime
+
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=build --chown=node:node /app/apps/api/prisma ./apps/api/prisma
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "apps/api/dist/main.js"]

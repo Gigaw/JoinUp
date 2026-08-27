@@ -1,0 +1,14 @@
+{
+	admin off
+}
+
+{$API_HOST} {
+	encode zstd gzip
+
+	log {
+		output stdout
+		format json
+	}
+
+	reverse_proxy api:3000
+}

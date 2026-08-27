@@ -1,21 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'argon2';
+import {
+  catalogIds,
+  categoryDefinitions,
+  cityDefinitions,
+  seedCatalog,
+} from './catalog';
 
 const prisma = new PrismaClient();
 
 const ids = {
-  city: 'c5e1b60d-1730-44dc-9171-38c8f445476d',
   organizer: '4f564fb0-20c2-4fa7-b553-f1f3da3ee0ae',
-  categories: {
-    sport: 'd3ad02c2-508d-4cee-ae45-ac640c589ad6',
-    walks: '2d4f1c57-4c9c-4f31-9fb2-0ca28e9bcbd4',
-    games: '8b6c6c5a-2af1-42b4-bbd8-a1b5f65a2e91',
-    culture: 'f0d9ab7b-2b6f-4fc4-8ea3-6cd604f84d72',
-    music: '9eac5f19-8f8d-46fb-9d5c-3dbb0f78a241',
-    social: '6b43e8f0-3d13-40e8-8d1b-1f1f3c915ec2',
-    languages: '5fa4d3b2-a2f2-47c6-bc89-4d4bd77a5b0f',
-    other: '1c8e76f2-7f6b-4b6b-a3a6-2de3f7ec9f03',
-  },
   events: {
     sport: '5b61f5a6-bc32-4f7f-bb51-24cebd154a39',
     walks: '2c2fb7a0-56e5-4cf1-9a70-e7cddf2fb7a1',
@@ -49,62 +44,6 @@ const ids = {
     ardonLanguages: 'b5dd1493-0ffb-4012-9a85-649d9a206863',
   },
 };
-
-const categoryDefinitions = [
-  { slug: 'sport', name: 'Спорт', sortOrder: 10 },
-  { slug: 'walks', name: 'Прогулки', sortOrder: 20 },
-  { slug: 'games', name: 'Игры', sortOrder: 30 },
-  { slug: 'culture', name: 'Кино и культура', sortOrder: 40 },
-  { slug: 'music', name: 'Музыка', sortOrder: 50 },
-  { slug: 'social', name: 'Общение', sortOrder: 60 },
-  { slug: 'languages', name: 'Языковые встречи', sortOrder: 70 },
-  { slug: 'other', name: 'Другое', sortOrder: 80 },
-] as const;
-
-const cityDefinitions = [
-  {
-    id: '85042e9d-c575-43b1-8ec5-239c07584ab7',
-    slug: 'vladikavkaz',
-    name: 'Владикавказ',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 10,
-  },
-  {
-    id: 'efc1187b-1bc1-4dd7-9e57-b63af9abb071',
-    slug: 'beslan',
-    name: 'Беслан',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 20,
-  },
-  {
-    id: '134a8b19-e413-46ff-b28c-6792dd2dd5a6',
-    slug: 'mozdok',
-    name: 'Моздок',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 30,
-  },
-  {
-    id: 'ba158689-fd2f-47cf-b7fc-4e60f9b9d235',
-    slug: 'alagir',
-    name: 'Алагир',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 40,
-  },
-  {
-    id: '5bb04513-11cf-48fd-9c1a-8789920d76cf',
-    slug: 'ardon',
-    name: 'Ардон',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 50,
-  },
-  {
-    id: ids.city,
-    slug: 'kazan',
-    name: 'Казань',
-    timeZone: 'Europe/Moscow',
-    sortOrder: 100,
-  },
-] as const;
 
 const eventDefinitions = [
   {
@@ -280,43 +219,19 @@ const eventDefinitions = [
 ] as const;
 
 async function main(): Promise<void> {
-  for (const definition of cityDefinitions) {
-    await prisma.city.upsert({
-      where: { id: definition.id },
-      update: {
-        slug: definition.slug,
-        name: definition.name,
-        timeZone: definition.timeZone,
-        isSupported: true,
-        sortOrder: definition.sortOrder,
-      },
-      create: definition,
-    });
-  }
+  await seedCatalog(prisma);
   const city = await prisma.city.findUniqueOrThrow({
-    where: { id: ids.city },
+    where: { id: catalogIds.cities.kazan },
   });
   const cities = new Map(
     cityDefinitions.map((definition) => [definition.slug, definition]),
   );
-  const categories = new Map<string, { id: string }>();
-  for (const definition of categoryDefinitions) {
-    const category = await prisma.category.upsert({
-      where: { id: ids.categories[definition.slug] },
-      update: {
-        name: definition.name,
-        isActive: true,
-        sortOrder: definition.sortOrder,
-      },
-      create: {
-        id: ids.categories[definition.slug],
-        slug: definition.slug,
-        name: definition.name,
-        sortOrder: definition.sortOrder,
-      },
-    });
-    categories.set(definition.slug, category);
-  }
+  const categories = new Map(
+    categoryDefinitions.map((definition) => [
+      definition.slug,
+      { id: definition.id },
+    ]),
+  );
   const organizer = await prisma.user.upsert({
     where: { id: ids.organizer },
     update: { cityId: city.id, onboardingCompletedAt: new Date() },

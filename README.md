@@ -199,6 +199,15 @@ pnpm build
 последовательность на чистой базе и дополнительно проверяет, что OpenAPI-клиент сгенерирован без
 незакоммиченного diff.
 
+## Тестовый удалённый API
+
+Тестовый deployment из [#51](https://github.com/Gigaw/JoinUp/issues/51) описан в
+[`infra/README.md`](infra/README.md) и зафиксирован в
+[ADR 0009](docs/adr/0009-single-vps-test-deployment.md). Он использует один VPS, Docker Compose,
+Caddy, PostgreSQL и local persistent media volume. Временный HTTPS-hostname подходит только для
+технических тестов; до публичного пилота нужны постоянный домен, независимые backup, rate limiting
+auth-endpoints и safety-возможности из PRD.
+
 ## Поддержка платформ
 
 | Платформа | Статус                                                            |

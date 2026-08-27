@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
   const config = readConfig();
   const mediaConfig = readMediaConfig();
   await ensureMediaRoot(mediaConfig.mediaRoot);
-  const app = await createApp();
+  const app = await createApp({ corsOrigins: config.corsOrigins });
   const document = createOpenApiDocument(app);
   SwaggerModule.setup('openapi', app, document);
   await app.listen(config.port, '0.0.0.0');

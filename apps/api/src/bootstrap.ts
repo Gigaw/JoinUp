@@ -10,7 +10,13 @@ import { ApiExceptionFilter } from './platform/http/api-exception.filter';
 import { RequestIdInterceptor } from './platform/http/request-id.interceptor';
 import { MAX_MEDIA_FILE_SIZE } from './platform/media/media-storage.port';
 
-export async function createApp(): Promise<NestFastifyApplication> {
+export interface CreateAppOptions {
+  corsOrigins?: string[];
+}
+
+export async function createApp(
+  options: CreateAppOptions = {},
+): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -31,6 +37,8 @@ export async function createApp(): Promise<NestFastifyApplication> {
   );
   app.useGlobalInterceptors(new RequestIdInterceptor());
   app.useGlobalFilters(new ApiExceptionFilter());
-  app.enableCors({ origin: true });
+  if (options.corsOrigins?.length) {
+    app.enableCors({ origin: options.corsOrigins });
+  }
   return app;
 }
