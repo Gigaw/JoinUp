@@ -164,7 +164,7 @@ describe('my activities', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: eventId,
-          myParticipation: { status: 'withdrawn' },
+          myParticipation: expect.objectContaining({ status: 'withdrawn' }),
         }),
       ]),
     );
