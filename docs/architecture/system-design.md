@@ -220,8 +220,9 @@ optimistic feedback, но после mutation обязан заменить ег
 
 Предусматриваются локальное, test и production-like окружения. Значения конфигурации валидируются
 при старте. Production credentials и реальные пользовательские данные не используются локально и
-в CI. Тестовый deployment на одном VPS зафиксирован в ADR 0009; постоянный hosting, backup и
-mobile distribution provider фиксируются отдельными решениями до публичного пилота.
+в CI. Тестовый deployment на одном VPS зафиксирован в ADR 0009, а его автоматическое обновление
+после успешного CI main — в ADR 0010. Постоянный hosting, backup и mobile distribution provider
+фиксируются отдельными решениями до публичного пилота.
 
 ## 10. Точки расширения
 
@@ -250,3 +251,5 @@ mobile distribution provider фиксируются отдельными реш�
 - [ADR 0005: конкурентное участие](../adr/0005-participation-concurrency.md)
 - [ADR 0006: REST и OpenAPI](../adr/0006-api-contracts.md)
 - [ADR 0007: локальное хранение изображений](../adr/0007-local-media-storage.md)
+- [ADR 0009: тестовый VPS deployment](../adr/0009-single-vps-test-deployment.md)
+- [ADR 0010: автоматическое безопасное развёртывание test VPS](../adr/0010-automated-test-vps-deployment.md)
